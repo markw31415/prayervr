@@ -1,0 +1,143 @@
+fileFormatVersion: 2
+guid: c670860ec287e324980ab39ac64a9f3f
+ModelImporter:
+  serializedVersion: 19
+  fileIDToRecycleName:
+    100000: Hedge-Clean-Arch-Round-Collider
+    100002: Hedge-Clean-Arch-Square-Collider
+    100004: Hedge-Clean-Bend-Long-Round-Collider
+    100006: Hedge-Clean-Bend-Long-Square-Collider
+    100008: Hedge-Clean-Bend-Small-Round-Collider001
+    100010: Hedge-Clean-Bend-Small-Square-Collider
+    100012: Hedge-Clean-Long-Round-Collider
+    100014: Hedge-Clean-Long-Square-Collider
+    100016: Hedge-Clean-Small-Round-Collider
+    100018: Hedge-Clean-Small-Square-Collider
+    100020: //RootNode
+    100022: Hedge-Clean-Arch-Round-large-Collider
+    100024: Hedge-Clean-Arch-Round-Thin-Collider
+    100026: Hedge-Clean-Bend-Small-Round-Collider
+    100028: Hedge-Wild-Arch-Round-Large-Collider
+    400000: Hedge-Clean-Arch-Round-Collider
+    400002: Hedge-Clean-Arch-Square-Collider
+    400004: Hedge-Clean-Bend-Long-Round-Collider
+    400006: Hedge-Clean-Bend-Long-Square-Collider
+    400008: Hedge-Clean-Bend-Small-Round-Collider001
+    400010: Hedge-Clean-Bend-Small-Square-Collider
+    400012: Hedge-Clean-Long-Round-Collider
+    400014: Hedge-Clean-Long-Square-Collider
+    400016: Hedge-Clean-Small-Round-Collider
+    400018: Hedge-Clean-Small-Square-Collider
+    400020: //RootNode
+    400022: Hedge-Clean-Arch-Round-large-Collider
+    400024: Hedge-Clean-Arch-Round-Thin-Collider
+    400026: Hedge-Clean-Bend-Small-Round-Collider
+    400028: Hedge-Wild-Arch-Round-Large-Collider
+    2300000: Hedge-Clean-Arch-Round-Collider
+    2300002: Hedge-Clean-Arch-Square-Collider
+    2300004: Hedge-Clean-Bend-Long-Round-Collider
+    2300006: Hedge-Clean-Bend-Long-Square-Collider
+    2300008: Hedge-Clean-Bend-Small-Round-Collider001
+    2300010: Hedge-Clean-Bend-Small-Square-Collider
+    2300012: Hedge-Clean-Long-Round-Collider
+    2300014: Hedge-Clean-Long-Square-Collider
+    2300016: Hedge-Clean-Small-Round-Collider
+    2300018: Hedge-Clean-Small-Square-Collider
+    2300020: Hedge-Clean-Arch-Round-large-Collider
+    2300022: Hedge-Clean-Arch-Round-Thin-Collider
+    2300024: Hedge-Clean-Bend-Small-Round-Collider
+    2300026: Hedge-Wild-Arch-Round-Large-Collider
+    3300000: Hedge-Clean-Arch-Round-Collider
+    3300002: Hedge-Clean-Arch-Square-Collider
+    3300004: Hedge-Clean-Bend-Long-Round-Collider
+    3300006: Hedge-Clean-Bend-Long-Square-Collider
+    3300008: Hedge-Clean-Bend-Small-Round-Collider001
+    3300010: Hedge-Clean-Bend-Small-Square-Collider
+    3300012: Hedge-Clean-Long-Round-Collider
+    3300014: Hedge-Clean-Long-Square-Collider
+    3300016: Hedge-Clean-Small-Round-Collider
+    3300018: Hedge-Clean-Small-Square-Collider
+    3300020: Hedge-Clean-Arch-Round-large-Collider
+    3300022: Hedge-Clean-Arch-Round-Thin-Collider
+    3300024: Hedge-Clean-Bend-Small-Round-Collider
+    3300026: Hedge-Wild-Arch-Round-Large-Collider
+    4300000: Hedge-Clean-Bend-Small-Square-Collider
+    4300002: Hedge-Clean-Small-Square-Collider
+    4300004: Hedge-Clean-Long-Square-Collider
+    4300006: Hedge-Clean-Bend-Long-Square-Collider
+    4300008: Hedge-Clean-Long-Round-Collider
+    4300010: Hedge-Clean-Bend-Long-Round-Collider
+    4300012: Hedge-Clean-Small-Round-Collider
+    4300014: Hedge-Clean-Bend-Small-Round-Collider001
+    4300016: Hedge-Clean-Arch-Round-Collider
+    4300018: Hedge-Clean-Arch-Square-Collider
+    4300020: Hedge-Clean-Arch-Round-large-Collider
+    4300022: Hedge-Clean-Arch-Round-Thin-Collider
+    4300024: Hedge-Clean-Bend-Small-Round-Collider
+    4300026: Hedge-Wild-Arch-Round-Large-Collider
+    7400000: Take 001
+    9500000: //RootNode
+  materials:
+    importMaterials: 0
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleRotations: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 4
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 0
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
