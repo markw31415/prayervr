@@ -1,0 +1,19 @@
+
+Builds
+Debugging Output
+Screenshots
+Source Material
+Temp
+Library
+
+
+
+
+*.csproj
+*.pidb
+*.pidb.meta
+*.sln
+*.unityproj
+*.userprefs
+*.tmproj
+Temp.meta
