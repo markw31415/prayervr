@@ -276,6 +276,7 @@ namespace SWS
         //called when moveToPath completes
         private void OnWaypointReached(int index)
         {
+			Debug.Log("splineMove.OnWaypointReached(" + index + ")");
             if (index <= 0) return;
 
             Stop();
@@ -288,6 +289,7 @@ namespace SWS
         //called at every waypoint to invoke events
         private void OnWaypointChange(int index)
 		{
+			Debug.Log("splineMove.OnWaypointChange(" + index + ")");
 			index = pathContainer.GetWaypointIndex(index);
 			if (index == -1) return;
             if (loopType != LoopType.yoyo && reverse)
@@ -397,6 +399,7 @@ namespace SWS
         /// </summary>
         public void GoToWaypoint(int index)
         {
+			Debug.Log("splineMove.GoToWaypoint(" + index + ")");
             if (tween == null)
                 return;
 
@@ -472,7 +475,8 @@ namespace SWS
         /// <summary>
         public void ResetToStart()
         {
-            Stop();
+			Debug.Log("splineMove.ResetToStart()");
+			Stop();
             currentPoint = 0;
             if (pathContainer)
             {
