@@ -2,6 +2,8 @@
 using System.Collections;
 
 public class DevSpectate : MonoBehaviour {
+	float speedDelta = 0.002f; // how much to increment speed 
+	float frac = 0.85f; // move towards zero speed by multiplying with this fraction (of 1f) 
 	Transform t;
 	Vector3 eul; // cached euler angles which we manipulate and clamp before putting it into the Transform 
 	GameObject fpc;
@@ -32,55 +34,69 @@ public class DevSpectate : MonoBehaviour {
 
 	void FixedUpdate() { // 50 frames per second
 		maybeMove();
-		maybeLookAround();
 	}
 
 
 	void Update() {
 		maybeToggleCameras();
+		maybeLookAround();
 	}
 
 
 	void maybeLookAround() {
-		float sens = 1f; // sensitivity 
-		eul.x += sens * Input.GetAxis("Mouse Y");
-		eul.y += sens * Input.GetAxis("Mouse X");
+		if (devCam.enabled) {
+			float sensX = 2f; // sensitivity 
+			float sensY = 1f; // sensitivity 
+			eul.y += sensX * Input.GetAxis("Mouse X");
+			eul.x += sensY * Input.GetAxis("Mouse Y");
 
-		// clamp extreme up/down angles to prevent upside-down view 
-		if (eul.x > 88f)
-			eul.x = 88f;
-		if (eul.x < -88f)
-			eul.x = -88f;
+			// clamp extreme up/down angles to prevent upside-down view 
+			if (eul.x > 88f)
+				eul.x = 88f;
+			if (eul.x < -88f)
+				eul.x = -88f;
 
-		t.eulerAngles = eul;
+			t.eulerAngles = eul;
+		}
 	}
 
 
+	Vector3 localSpeed = Vector3.zero; // local space relative to player 
 	void maybeMove() {
-		float dist = 0.06f; // distance to move 
-		var moveDelta = new Vector3(0,0,0);
-
 		if (devCam.enabled) {
-			if (Input.GetKey(KeyCode.W)) {
-				moveDelta.z += dist;
-			}
-			if (Input.GetKey(KeyCode.S)) {
-				moveDelta.z -= dist;
-			}
-			if (Input.GetKey(KeyCode.A)) {
-				moveDelta.x -= dist;
-			}
-			if (Input.GetKey(KeyCode.D)) {
-				moveDelta.x += dist;
-			}
-			if (Input.GetKey(KeyCode.Q)) {
-				moveDelta.y += dist;
-			}
-			if (Input.GetKey(KeyCode.Z)) {
-				moveDelta.y -= dist;
-			}
+			float maxSpeed = 10f;
 
-			t.position += t.rotation * moveDelta;
+			// forward/back axis 
+			updateAxisSpeedWithPlusAndMinusKeys(ref localSpeed.z, KeyCode.W, KeyCode.S);
+
+			// lateral axis 
+			updateAxisSpeedWithPlusAndMinusKeys(ref localSpeed.x, KeyCode.D, KeyCode.A);
+
+			// up/down axis 
+			updateAxisSpeedWithPlusAndMinusKeys(ref localSpeed.y, KeyCode.Q, KeyCode.Z);
+
+			localSpeed.x = Mathf.Clamp(localSpeed.x, -maxSpeed, maxSpeed);
+			localSpeed.y = Mathf.Clamp(localSpeed.y, -maxSpeed, maxSpeed);
+			localSpeed.z = Mathf.Clamp(localSpeed.z, -maxSpeed, maxSpeed);
+			t.position += t.rotation * localSpeed;
+		}
+	}
+
+
+	void updateAxisSpeedWithPlusAndMinusKeys(ref float speed, KeyCode plus, KeyCode minus) {
+		if (Input.GetKey(plus)) {
+			if (speed < 0f)
+				speed *= frac/2;
+
+			speed += speedDelta;
+		}else
+		if (Input.GetKey(minus)) {
+			if (speed > 0f)
+				speed *= frac/2;
+
+			speed -= speedDelta;
+		}else{
+			speed *= frac;
 		}
 	}
 
