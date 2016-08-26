@@ -189,6 +189,7 @@ namespace SWS
 
             Stop();
             CreateTween();
+			transform.eulerAngles = new Vector3(0, 180f, 0);
         }
 
 
@@ -276,7 +277,7 @@ namespace SWS
         //called when moveToPath completes
         private void OnWaypointReached(int index)
         {
-			Debug.Log("splineMove.OnWaypointReached(" + index + ")");
+			Debug.Log("\nsplineMove.OnWaypointReached(" + index + ")");
             if (index <= 0) return;
 
             Stop();
@@ -289,7 +290,7 @@ namespace SWS
         //called at every waypoint to invoke events
         private void OnWaypointChange(int index)
 		{
-			Debug.Log("splineMove.OnWaypointChange(" + index + ")");
+			Debug.Log("\n<color=gray>splineMove.OnWaypointChange(" + index + ")</color>");
 			index = pathContainer.GetWaypointIndex(index);
 			if (index == -1) return;
             if (loopType != LoopType.yoyo && reverse)
@@ -399,7 +400,7 @@ namespace SWS
         /// </summary>
         public void GoToWaypoint(int index)
         {
-			Debug.Log("splineMove.GoToWaypoint(" + index + ")");
+			Debug.Log("\nsplineMove.GoToWaypoint(" + index + ")");
             if (tween == null)
                 return;
 
@@ -475,7 +476,7 @@ namespace SWS
         /// <summary>
         public void ResetToStart()
         {
-			Debug.Log("splineMove.ResetToStart()");
+			Debug.Log("\nsplineMove.ResetToStart()");
 			Stop();
             currentPoint = 0;
             if (pathContainer)
