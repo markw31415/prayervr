@@ -290,7 +290,7 @@ namespace SWS
         //called at every waypoint to invoke events
         private void OnWaypointChange(int index)
 		{
-			Debug.Log("\n<color=gray>splineMove.OnWaypointChange(" + index + ")</color>");
+			Debug.Log("\n<color=blue>splineMove.OnWaypointChange() - waypoints[" + index + "]: " + waypoints[index] + "</color>");
 			index = pathContainer.GetWaypointIndex(index);
 			if (index == -1) return;
             if (loopType != LoopType.yoyo && reverse)
