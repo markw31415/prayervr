@@ -4,6 +4,8 @@ using System.Collections.Generic;
 
 
 public class ProcPath : MonoBehaviour {
+	public Material mat;
+
 	// private 
 	int currVertId = 0; // current vertex index 
 	float rad = 2048f; // radius of entire labyrinth path 
@@ -27,9 +29,11 @@ public class ProcPath : MonoBehaviour {
 
 
 	void Start() {
+		//RenderSettings.ambientIntensity = 3f;
 		tr = transform;
 		mf = gameObject.AddComponent<MeshFilter>();
 		mr = gameObject.AddComponent<MeshRenderer>();
+		mr.material = mat;
 
 		m = new Mesh();
 		mf.mesh = m;
@@ -40,6 +44,7 @@ public class ProcPath : MonoBehaviour {
 		m.vertices = verts.ToArray();
 		m.uv = uvs.ToArray();
 		m.triangles = triIndices.ToArray();
+		m.RecalculateNormals();
 	}
 
 
@@ -84,8 +89,9 @@ public class ProcPath : MonoBehaviour {
 	void makePoint(Vector3 v, Color c, List<Vector3> l) {
 		var f = 0.2f;
 		var o = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-		o.transform.position = v;
+		o.transform.position = tr.position + v;
 		o.transform.localScale = new Vector3(f, f, f);
+		o.transform.SetParent(tr, false);
 		o.GetComponent<Renderer>().material.color = c;
 		l.Add(v);
 	}
@@ -107,17 +113,33 @@ public class ProcPath : MonoBehaviour {
 		var lId = 0; // left index 
 		var rId = 0; // right index 
 
-		verts.Add(rights[rId]);
-		verts.Add(lefts[lId]);
+		addVertAndUv(rights[rId]);
+		addVertAndUv(lefts[lId]);
 		rId++;
-		verts.Add(rights[rId]);
-
-		uvs.Add(new Vector2(0, 0));
-		uvs.Add(new Vector2(0, 0));
-		uvs.Add(new Vector2(0, 0));
+		addVertAndUv(rights[rId]);
 
 		triIndices.Add(0);
 		triIndices.Add(1);
 		triIndices.Add(2);
+
+		lId++;
+		addVertAndUv(lefts[lId]);
+
+		triIndices.Add(2);
+		triIndices.Add(1);
+		triIndices.Add(3);
+
+		rId++;
+		addVertAndUv(rights[rId]);
+
+		triIndices.Add(2);
+		triIndices.Add(3);
+		triIndices.Add(4);
+	}
+
+
+	void addVertAndUv(Vector3 v) {
+		verts.Add(v);
+		uvs.Add(new Vector2(v.x/4, v.z/4));
 	}
 }
