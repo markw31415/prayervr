@@ -1,7 +1,28 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-
+/* 			NOTES: 
+ *  
+ * LLR == triangles that are defined by these points: left, next left, right
+ * RLR == triangles that are defined by these points: right, left, right
+ * (from the "lefts"/"rights" vertex lists)
+ * 
+ * thoughts on either:
+ * (1) automating existing hedge model PLACEMENT (and rotation) around the edges of the fully generated path
+ * (2) fully generating hedge meshes to follow the form of the path perfectly, with no cracks or overlapping
+ *
+ * (surely there is a way to do the latter, where it's
+ * easier than automating proper placing of existing "square" (right angled) rectangular/box models at appropriate
+ * intervals?)
+ * 
+ * & if we do (2), maybe the outside edges could have lower edge/side resolution, and it could be easy to do it
+ * at twice the resolution of the inside edge of the path?
+ * 
+ * 1st, we could use the chunk (a repeating piece/pattern of the path section) dividing lines because they
+ * point straight outwards.
+ * 2nd, we could plot a ray from the points exactly between the inside points, and the tip of the LLR triangles,
+ * which also points straight out
+*/
 
 public class ProcPath : MonoBehaviour {
 	public Material mat;
@@ -97,41 +118,59 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	// an "edge" here is a straight segment (or side, if talking about closed polygons) between 2 vertices. 
+	// an "edge" here is a straight segment (or side, if we were talking about closed polygons) between 2 vertices. 
 	// to make things simple, every edge resolution increase will double the number of edges 
-	int getNumVertsForThisManyEdgeDoublings(int numDoublings, int currNumVerts) {
+	int getNumVertsForThisManyEdgeDoublings(int numDoublings, int numVerts) {
 		for (int i = 0; i < numDoublings; i++) {
-			currNumVerts += (currNumVerts - 1);
+			numVerts += (numVerts - 1);
 		}
 
-		return currNumVerts;
+		return numVerts;
 	}
 
 
-	void stitchLeftEdgesToDoubledRightEdges() {
-		// starting triangle, to be generic, should go 1st right to 1st left, then 2nd right 
+	void stitchLeftEdgesToDoubledRightEdges() { // ....and fill intermediate lists 
+		// starting triangle (to be more generic) should go 1st right to 1st left, then 2nd right 
 		var lId = 0; // left index 
 		var rId = 0; // right index 
 
-		addVertAndUv(rights[rId]);
-		addVertAndUv(lefts[lId]);
-		rId++;
-		addVertAndUv(rights[rId]);
+		// TODO when expanding functionality to allow for more than 1 doubling:
+		// each RLRTriangle, will actually be a fan with multiple tris
 
+		if /* simple quad ladder */ (lefts.Count == rights.Count) {
+			repeatForEntireSection {
+				makeRLRTriangle/s();
+				makeLLRTriangle/s();
+			}
+		}else{
+			repeatUntilFinishedAtTheExactMiddleRightVert {
+				makeRLRTriangle/s();
+			}
+
+			makeLLRTriangle/s(); // exact middle tri 
+
+			repeatUntilDone {
+				makeRLRTriangle/s();
+			}
+		}
+
+		// RLR tri
+		addVertAndUv(rights[rId++]); // 1st 2 points (which are outside subsequent repeatable patterns) 
+		addVertAndUv(lefts[lId++]);
+
+		addVertAndUv(rights[rId++]);
 		triIndices.Add(0);
 		triIndices.Add(1);
 		triIndices.Add(2);
 
-		lId++;
-		addVertAndUv(lefts[lId]);
-
+		// LLR tri 
+		addVertAndUv(lefts[lId++]);
 		triIndices.Add(2);
 		triIndices.Add(1);
 		triIndices.Add(3);
 
-		rId++;
-		addVertAndUv(rights[rId]);
-
+		// RLR tri 
+		addVertAndUv(rights[rId++]);
 		triIndices.Add(2);
 		triIndices.Add(3);
 		triIndices.Add(4);
