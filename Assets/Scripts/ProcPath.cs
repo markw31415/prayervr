@@ -28,10 +28,13 @@ public class ProcPath : MonoBehaviour {
 	public Material mat;
 
 	// private 
-	int currVertId = 0; // current vertex index 
+	int currVert = 0; // current vertex index 
+	int lId = 0; // left index 
+	int rId = 0; // right index 
 	float rad = 2048f; // radius of entire labyrinth path 
 	float wid = 3f; // path width 
 	float goldenRatio = 1.61803398875f;
+
 	//Vector3 currPos = new Vector3(385f, 1.5f, 447f);
 	Transform tr;
 	Mesh m;
@@ -131,54 +134,84 @@ public class ProcPath : MonoBehaviour {
 
 	void stitchLeftEdgesToDoubledRightEdges() { // ....and fill intermediate lists 
 		// starting triangle (to be more generic) should go 1st right to 1st left, then 2nd right 
-		var lId = 0; // left index 
-		var rId = 0; // right index 
+		lId = 0; // left index 
+		rId = 0; // right index 
 
 		// TODO when expanding functionality to allow for more than 1 doubling:
-		// each RLRTriangle, will actually be a fan with multiple tris
+		// each RLRTriangle, could be expanded to be a fan with multiple tris.  if there is more than 1 doubling. 
 
-		if /* simple quad ladder */ (lefts.Count == rights.Count) {
-			repeatForEntireSection {
-				makeRLRTriangle/s();
-				makeLLRTriangle/s();
-			}
+		// a "ladder" here, refers to the edges, and the "straight out" lines (rungs) that are formed
+		// by matching points.  if both sides have the same number of points, then we have a simple
+		// quad ladder, with each rung-to-rung chunk being 2 triangles.
+		// with 1 edge doubled (in number of points), each chunk will be 3 triangles.  the middle one
+		// (a LRL tri) will ALWAYS have the same shape, no matter how many extra resolution doublings 
+		// occur.  the 2 remaining triangular areas can be made into fans, where the extra doublings
+		// make the round edge (opposite of the sharp point) more and more round as more points are added.
+
+		// "rungs" here, refers to the "straight out" (radially from the centerpoint arc is plotted from)
+		// lines, one for each inside edge point 
+		// a rung-to-rung run is a repeatable chunk pattern of the section we are building
+
+		// 1st rung (2 points, which are outside of subsequent repeatable patterns) 
+		addVertAndUv(rights[rId++]);
+		addVertAndUv(lefts[lId++]);
+
+		if // simple quad ladder 
+			(lefts.Count == rights.Count) 
+		{
+			//repeatForEntireSection {
+				//makeRLRTriangles();
+				//makeLLRTriangle();
+			//}
 		}else{
-			repeatUntilFinishedAtTheExactMiddleRightVert {
-				makeRLRTriangle/s();
-			}
+			while (lId < lefts.Count || rId < rights.Count) {
+				bool newPointNeeded = verts.Count < 5; // FIXME needed? for different resolution pairsings?
 
-			makeLLRTriangle/s(); // exact middle tri 
+				//repeatUntilNextLLRTri {
+					makeRLRTriangles(newPointNeeded);
+				//}
 
-			repeatUntilDone {
-				makeRLRTriangle/s();
+				makeLLRTriangle(newPointNeeded); // exact middle tri (of a rung to rung chunk) 
+
+				//repeatUntilUntilNextRung { 
+					makeRLRTriangles(newPointNeeded);
+				//}
 			}
 		}
 
-		// RLR tri
-		addVertAndUv(rights[rId++]); // 1st 2 points (which are outside subsequent repeatable patterns) 
-		addVertAndUv(lefts[lId++]);
-
-		addVertAndUv(rights[rId++]);
-		triIndices.Add(0);
-		triIndices.Add(1);
-		triIndices.Add(2);
-
-		// LLR tri 
-		addVertAndUv(lefts[lId++]);
-		triIndices.Add(2);
-		triIndices.Add(1);
-		triIndices.Add(3);
-
+		/*
 		// RLR tri 
 		addVertAndUv(rights[rId++]);
 		triIndices.Add(2);
 		triIndices.Add(3);
 		triIndices.Add(4);
+		*/
+	}
+
+
+	void makeRLRTriangles(bool newPointNeeded) {
+		if (newPointNeeded)
+			addVertAndUv(rights[rId++]);
+		
+		triIndices.Add(currVert - 3);
+		triIndices.Add(currVert - 2);
+		triIndices.Add(currVert - 1);
+	}
+
+
+	void makeLLRTriangle(bool newPointNeeded) {
+		if (newPointNeeded)
+			addVertAndUv(lefts[lId++]);
+		
+		triIndices.Add(currVert - 3);
+		triIndices.Add(currVert - 1);
+		triIndices.Add(currVert - 2);
 	}
 
 
 	void addVertAndUv(Vector3 v) {
 		verts.Add(v);
 		uvs.Add(new Vector2(v.x/4, v.z/4));
+		currVert++;
 	}
 }
