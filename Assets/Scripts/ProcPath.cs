@@ -137,14 +137,16 @@ public class ProcPath : MonoBehaviour {
 		lId = 0; // left index 
 		rId = 0; // right index 
 
-		// TODO when expanding functionality to allow for more than 1 doubling:
-		// each RLRTriangle, could be expanded to be a fan with multiple tris.  if there is more than 1 doubling. 
-
-		// a "ladder" here, refers to the edges, and the "straight out" lines (rungs) that are formed
+		// LRL/LLR: refers to the sequence of lefts and rights
+		//
+		// a "ladder" here, refers to the edges, and the "straight out" lines
+		// (from the center of the circle we're taking a segment from) are rungs.  which are formed
 		// by matching points.  if both sides have the same number of points, then we have a simple
-		// quad ladder, with each rung-to-rung chunk being 2 triangles.
-		// with 1 edge doubled (in number of points), each chunk will be 3 triangles.  the middle one
-		// (a LRL tri) will ALWAYS have the same shape, no matter how many extra resolution doublings 
+		// quad ladder, with each (rung to rung) chunk being 2 triangles.
+		// with 1 edge doubled (in number of straight lines), each chunk will be 3 triangles.  
+
+		// the middle triangle
+		// (a LRL) will ALWAYS have the same shape, no matter how many extra resolution doublings 
 		// occur.  the 2 remaining triangular areas can be made into fans, where the extra doublings
 		// make the round edge (opposite of the sharp point) more and more round as more points are added.
 
@@ -152,11 +154,16 @@ public class ProcPath : MonoBehaviour {
 		// lines, one for each inside edge point 
 		// a rung-to-rung run is a repeatable chunk pattern of the section we are building
 
+
+		// TODO when expanding functionality to allow for more than 1 doubling:
+		// each RLRTriangle, could be expanded to be a fan with multiple tris.  if there is more than 1 doubling. 
+
+
 		// 1st rung (2 points, which are outside of subsequent repeatable patterns) 
 		addVertAndUv(rights[rId++]);
-		addVertAndUv(lefts[lId++]);
+		addVertAndUv(lefts[lId]);
 
-		if // simple quad ladder 
+		if // it's a simple quad ladder 
 			(lefts.Count == rights.Count) 
 		{
 			//repeatForEntireSection {
@@ -164,8 +171,11 @@ public class ProcPath : MonoBehaviour {
 				//makeLLRTriangle();
 			//}
 		}else{
-			while (lId < lefts.Count || rId < rights.Count) {
-				bool newPointNeeded = verts.Count < 5; // FIXME needed? for different resolution pairsings?
+			for (; lId < lefts.Count ;) {
+				lId++;
+
+				// do one chunk between all the points of the lower resolution edge 
+				bool newPointNeeded = true; //verts.Count < 5; // FIXME needed? for different resolution pairings?
 
 				//repeatUntilNextLLRTri {
 					makeRLRTriangles(newPointNeeded);
@@ -201,7 +211,7 @@ public class ProcPath : MonoBehaviour {
 
 	void makeLLRTriangle(bool newPointNeeded) {
 		if (newPointNeeded)
-			addVertAndUv(lefts[lId++]);
+			addVertAndUv(lefts[lId]);
 		
 		triIndices.Add(currVert - 3);
 		triIndices.Add(currVert - 1);
