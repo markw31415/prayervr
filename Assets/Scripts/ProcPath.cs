@@ -74,13 +74,15 @@ public class ProcPath : MonoBehaviour {
 
 	void setupIntermediateStructures() {
 		var numVerts = 5;
+		int numDoublings = 1;
+
 		makeArc(lefts,
 			new Vector3(-2f, 0f, 0f), 
 			new Vector3(-4f, 0f, 4f), 
 			-2.7f, numVerts);
 
-		int numDoublings = 1;
 		numVerts = getNumVertsForThisManyEdgeDoublings(numDoublings, numVerts);
+
 		makeArc(rights,
 			new Vector3(2f, 0f, 0f), 
 			new Vector3(-8f, 0f, 8f), 
@@ -114,7 +116,7 @@ public class ProcPath : MonoBehaviour {
 	void makePoint(Vector3 v, Color c, List<Vector3> l) {
 		var f = 0.2f;
 		var o = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-		o.transform.position = tr.position + v;
+		o.transform.position = v;
 		o.transform.localScale = new Vector3(f, f, f);
 		o.transform.SetParent(tr, false);
 		o.GetComponent<Renderer>().material.color = c;
@@ -162,34 +164,21 @@ public class ProcPath : MonoBehaviour {
 		// TODO when expanding functionality to allow for more than 1 doubling:
 		// each RLRTriangle, could be expanded to be a fan with multiple tris.  if there is more than 1 doubling. 
 
-		if // it's a simple quad ladder 
-			(lefts.Count == rights.Count) 
-		{
-			for (; lId < lefts.Count; lId++) {
-				// do one chunk 
-				// (between all the points of the lower resolution edge) 
-				Debug.Log("\nlId: " + lId);
+		for (; lId < lefts.Count; lId++) {
+			// do one chunk 
+			// (between all the points of the lower resolution edge) 
+			Debug.Log("\nlId: " + lId);
 
-				makeRLRTriSingle();
+			if // it's a simple quad ladder 
+				(lefts.Count == rights.Count) 
+			{
+				makeOneRLRTriangle();
 				makeLLRTriangle();
-			}
-		}else{ // increased resolution on the right, requiring 3 or more tris per chunk 
-			for (; lId < lefts.Count; lId++) {
-				// do one chunk 
-				// (between all the points of the lower resolution edge) 
-				Debug.Log("\nlId: " + lId);
-
-				while (rId <= rights.Count/2) {
-					makeRLRTriFan();
-				}
-
-				makeLLRTriangle(); // exact middle tri (of a rung to rung chunk) 
-				//rId--;
-
-				/*
-				while (rId < rights.Count) { // repeat until next rung 
-					makeRLRTriangles();
-				}*/
+			}else{ // it has more verts on the right, requiring 3 or more tris per chunk 
+				//while (rId <= rights.Count/2) {
+					makeRLRTriangleFan(2);
+					//makeLLRTriangle(); // exact middle tri (of a rung to rung chunk) pointing outwards 
+				//}
 			}
 		}
 
@@ -203,7 +192,7 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	void makeRLRTriSingle() {
+	void makeOneRLRTriangle() {
 		addVertAndUv(rights[rId++]);
 
 		triIndices.Add(currVert - 3);
@@ -212,17 +201,29 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	void makeRLRTriFan(int numLines) { // (straight) lines/sides of the round edge of this chunk/section of the arc 
-		addVertAndUv(rights[rId++]);
+	void makeRLRTriangleFan(int numTris) {
+		// notes:
+		// the left tri remains the same
+		// always use the latest 2 right tris
+		int leftAnchor = currVert - 1; // diff from makeOneRLRTriangle, because we're before the rId++ 
+		int currR;
+		int prevR;
 
-		// hand positions, which represent our current grip on the mesh "ladder" 
-		var oldR = currVert - 3;
-		var currL = currVert - 2;
-		var currR = currVert - 1;
+		for (int i = 0; i < numTris; i++) {
+			addVertAndUv(rights[rId++]);
 
-		triIndices.Add(oldR);
-		triIndices.Add(currL);
-		triIndices.Add(currR);
+			if (i == 0 ) {
+				prevR = currVert - 3;
+			}else{
+				prevR = currR;
+			}
+
+			currR = currVert - 1;
+
+			triIndices.Add(prevR);
+			triIndices.Add(leftAnchor);
+			triIndices.Add(currR);
+		}
 	}
 
 
