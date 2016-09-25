@@ -79,13 +79,14 @@ public class ProcPath : MonoBehaviour {
 			new Vector3(-4f, 0f, 4f), 
 			-2.7f, numVerts);
 
-		numVerts = getNumVertsForThisManyEdgeDoublings(1, numVerts);
+		int numDoublings = 1;
+		numVerts = getNumVertsForThisManyEdgeDoublings(numDoublings, numVerts);
 		makeArc(rights,
 			new Vector3(2f, 0f, 0f), 
 			new Vector3(-8f, 0f, 8f), 
 			-4f, numVerts);
 
-		stitchLeftEdgesToDoubledRightEdges();
+		stitchLeftEdgesToDoubledRightEdges(numDoublings);
 	}
 
 
@@ -132,10 +133,13 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	void stitchLeftEdgesToDoubledRightEdges() { // ....and fill intermediate lists 
-		// starting triangle (to be more generic) should go 1st right to 1st left, then 2nd right 
+	void stitchLeftEdgesToDoubledRightEdges(int numDoublings) { // ....and fill intermediate lists 
 		lId = 0; // left index 
 		rId = 0; // right index 
+		// make 1st rung (2 points, which are outside of subsequent repeatable patterns) 
+		addVertAndUv(rights[rId++]);
+		addVertAndUv(lefts[lId++]);
+
 
 		// LRL/LLR: refers to the sequence of lefts and rights
 		//
@@ -158,34 +162,34 @@ public class ProcPath : MonoBehaviour {
 		// TODO when expanding functionality to allow for more than 1 doubling:
 		// each RLRTriangle, could be expanded to be a fan with multiple tris.  if there is more than 1 doubling. 
 
-
-		// 1st rung (2 points, which are outside of subsequent repeatable patterns) 
-		addVertAndUv(rights[rId++]);
-		addVertAndUv(lefts[lId]);
-
 		if // it's a simple quad ladder 
 			(lefts.Count == rights.Count) 
 		{
-			//repeatForEntireSection {
-				//makeRLRTriangles();
-				//makeLLRTriangle();
-			//}
-		}else{
-			for (; lId < lefts.Count ;) {
-				lId++;
+			for (; lId < lefts.Count; lId++) {
+				// do one chunk 
+				// (between all the points of the lower resolution edge) 
+				Debug.Log("\nlId: " + lId);
 
-				// do one chunk between all the points of the lower resolution edge 
-				bool newPointNeeded = true; //verts.Count < 5; // FIXME needed? for different resolution pairings?
+				makeRLRTriSingle();
+				makeLLRTriangle();
+			}
+		}else{ // increased resolution on the right, requiring 3 or more tris per chunk 
+			for (; lId < lefts.Count; lId++) {
+				// do one chunk 
+				// (between all the points of the lower resolution edge) 
+				Debug.Log("\nlId: " + lId);
 
-				//repeatUntilNextLLRTri {
-					makeRLRTriangles(newPointNeeded);
-				//}
+				while (rId <= rights.Count/2) {
+					makeRLRTriFan();
+				}
 
-				makeLLRTriangle(newPointNeeded); // exact middle tri (of a rung to rung chunk) 
+				makeLLRTriangle(); // exact middle tri (of a rung to rung chunk) 
+				//rId--;
 
-				//repeatUntilUntilNextRung { 
-					makeRLRTriangles(newPointNeeded);
-				//}
+				/*
+				while (rId < rights.Count) { // repeat until next rung 
+					makeRLRTriangles();
+				}*/
 			}
 		}
 
@@ -199,19 +203,31 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	void makeRLRTriangles(bool newPointNeeded) {
-		if (newPointNeeded)
-			addVertAndUv(rights[rId++]);
-		
+	void makeRLRTriSingle() {
+		addVertAndUv(rights[rId++]);
+
 		triIndices.Add(currVert - 3);
 		triIndices.Add(currVert - 2);
 		triIndices.Add(currVert - 1);
 	}
 
 
-	void makeLLRTriangle(bool newPointNeeded) {
-		if (newPointNeeded)
-			addVertAndUv(lefts[lId]);
+	void makeRLRTriFan(int numLines) { // (straight) lines/sides of the round edge of this chunk/section of the arc 
+		addVertAndUv(rights[rId++]);
+
+		// hand positions, which represent our current grip on the mesh "ladder" 
+		var oldR = currVert - 3;
+		var currL = currVert - 2;
+		var currR = currVert - 1;
+
+		triIndices.Add(oldR);
+		triIndices.Add(currL);
+		triIndices.Add(currR);
+	}
+
+
+	void makeLLRTriangle() {
+		addVertAndUv(lefts[lId]);
 		
 		triIndices.Add(currVert - 3);
 		triIndices.Add(currVert - 1);
