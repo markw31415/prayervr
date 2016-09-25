@@ -73,19 +73,26 @@ public class ProcPath : MonoBehaviour {
 
 
 	void setupIntermediateStructures() {
+		makeArcedPathSection(4f, Vector3.zero, new Vector3(-6f, 0, 6f);
+		//makeArcedPathSection(width, start, end);
+	}
+
+
+	void makeArcedPathSection(float width, Vector3 start, Vector3 end) {
 		var numVerts = 5;
 		int numDoublings = 1;
 
 		makeArc(lefts,
-			new Vector3(-2f, 0f, 0f), 
-			new Vector3(-4f, 0f, 4f), 
+			new Vector3(start.x-width/2, start.y, start.z),     // TODO, half width adjustments aren't that simple...
+					// it depends on the rotation (or maybe forward direction) 
+			new Vector3(-4f, end.y, end.z-width), 
 			-2.7f, numVerts);
 
 		numVerts = getNumVertsForThisManyEdgeDoublings(numDoublings, numVerts);
 
 		makeArc(rights,
-			new Vector3(2f, 0f, 0f), 
-			new Vector3(-8f, 0f, 8f), 
+			new Vector3(start.x+width/2, start.y, start.z), 
+			new Vector3(-8f, end.y, end.z+width), 
 			-4f, numVerts);
 
 		stitchLeftEdgesToDoubledRightEdges(numDoublings);
@@ -177,18 +184,10 @@ public class ProcPath : MonoBehaviour {
 			}else{ // it has more verts on the right, requiring 3 or more tris per chunk 
 				//while (rId <= rights.Count/2) {
 					makeRLRTriangleFan(2);
-					//makeLLRTriangle(); // exact middle tri (of a rung to rung chunk) pointing outwards 
+					makeAnAFTERFANLLRTriangle(); // exact middle tri (of a rung to rung chunk) pointing outwards 
 				//}
 			}
 		}
-
-		/*
-		// RLR tri 
-		addVertAndUv(rights[rId++]);
-		triIndices.Add(2);
-		triIndices.Add(3);
-		triIndices.Add(4);
-		*/
 	}
 
 
@@ -201,18 +200,21 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
+	int anchL; // left anchor.  the point of a triangle fan, where you would hold it (if it was a physical hand fan) 
 	void makeRLRTriangleFan(int numTris) {
 		// notes:
 		// the left tri remains the same
 		// always use the latest 2 right tris
-		int leftAnchor = currVert - 1; // diff from makeOneRLRTriangle, because we're before the rId++ 
-		int currR;
-		int prevR;
+
+		// diff indices from makeOneRLRTriangle, because we're before the rId++ here 
+		int prevR = currVert - 2;
+		anchL = currVert - 1;
+		int currR = currVert;
 
 		for (int i = 0; i < numTris; i++) {
 			addVertAndUv(rights[rId++]);
 
-			if (i == 0 ) {
+			if (i == 0) {
 				prevR = currVert - 3;
 			}else{
 				prevR = currR;
@@ -221,15 +223,24 @@ public class ProcPath : MonoBehaviour {
 			currR = currVert - 1;
 
 			triIndices.Add(prevR);
-			triIndices.Add(leftAnchor);
+			triIndices.Add(anchL);
 			triIndices.Add(currR);
 		}
 	}
 
 
+	void makeAnAFTERFANLLRTriangle() {
+		addVertAndUv(lefts[lId]);
+
+		triIndices.Add(anchL);
+		triIndices.Add(currVert - 1);
+		triIndices.Add(currVert - 2);
+	}
+
+
 	void makeLLRTriangle() {
 		addVertAndUv(lefts[lId]);
-		
+
 		triIndices.Add(currVert - 3);
 		triIndices.Add(currVert - 1);
 		triIndices.Add(currVert - 2);
