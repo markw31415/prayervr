@@ -3,9 +3,9 @@ using System.Collections.Generic;
 
 /* 			NOTES: 
  *  
- * LLR == triangles that are defined by these points: left, next left, right
- * RLR == triangles that are defined by these points: right, left, right
- * (from the "lefts"/"rights" vertex lists)
+ * LLR == triangles that are defined by points in this order: left, left, right
+ * RLR == triangles that are defined by points in this order: right, left, right
+ * (from the separate "lefts"/"rights" vertex lists) 
  * 
  * thoughts on either:
  * (1) automating existing hedge model PLACEMENT (and rotation) around the edges of the fully generated path
@@ -20,8 +20,8 @@ using System.Collections.Generic;
  * 
  * 1st, we could use the chunk (a repeating piece/pattern of the path section) dividing lines because they
  * point straight outwards.
- * 2nd, we could plot a ray from the points exactly between the inside points, and the tip of the LLR triangles,
- * which also points straight out
+ * 2nd, we could plot a ray from the points exactly between the inside points, and the tip of the LLR triangles 
+ * (which also points straight out) 
 */
 
 public class ProcPath : MonoBehaviour {
@@ -37,6 +37,7 @@ public class ProcPath : MonoBehaviour {
 
 	//Vector3 currPos = new Vector3(385f, 1.5f, 447f);
 	Transform tr;
+	Transform rtt; // run-time transform 
 	Mesh m;
 	MeshFilter mf;
 	MeshRenderer mr;
@@ -55,6 +56,8 @@ public class ProcPath : MonoBehaviour {
 	void Start() {
 		//RenderSettings.ambientIntensity = 3f;
 		tr = transform;
+		rtt = transform;
+		//rtt = new Transform();
 		mf = gameObject.AddComponent<MeshFilter>();
 		mr = gameObject.AddComponent<MeshRenderer>();
 		mr.material = mat;
@@ -73,45 +76,69 @@ public class ProcPath : MonoBehaviour {
 
 
 	void setupIntermediateStructures() {
-		makeArcedPathSection(4f, Vector3.zero, new Vector3(-6f, 0, 6f);
-		//makeArcedPathSection(width, start, end);
-	}
+		var pivotAnchor = new Vector3(-6f, 0, 0f);
+		makeArcedPathSection(5, Vector3.zero, new Vector3(-6f, 0, 6f), 0f, -90f, 4f, pivotAnchor);
 
+		pivotAnchor = Vector3.zero;
+		makeArcedPathSection(15, new Vector3(-6f, 0, 6f), new Vector3(6f, 0, -30f), -90f, -270f, 4f, pivotAnchor);
 
-	void makeArcedPathSection(float width, Vector3 start, Vector3 end) {
-		var numVerts = 5;
-		int numDoublings = 1;
-
-		makeArc(lefts,
-			new Vector3(start.x-width/2, start.y, start.z),     // TODO, half width adjustments aren't that simple...
-					// it depends on the rotation (or maybe forward direction) 
-			new Vector3(-4f, end.y, end.z-width), 
-			-2.7f, numVerts);
-
-		numVerts = getNumVertsForThisManyEdgeDoublings(numDoublings, numVerts);
-
-		makeArc(rights,
-			new Vector3(start.x+width/2, start.y, start.z), 
-			new Vector3(-8f, end.y, end.z+width), 
-			-4f, numVerts);
-
-		stitchLeftEdgesToDoubledRightEdges(numDoublings);
+		pivotAnchor = new Vector3(0f, 0, -36f);
+		makeArcedPathSection(15, new Vector3(0, 0, -48f), new Vector3(0, 0, 15f), 90f, -90f, 4f, pivotAnchor);
 	}
 
 
 	// lateralDist: ....to the center of a circle.  which is the LATERAL distance away (considering
 	// the "movement" direction) from the center point (which lies between our current pos and the endpoint target pos). 
-	// in other words, it is a single float value that gives our distance to the left (neg) or right (pos), where we place
-	// the center of the circle (a select segment of the perimeter of the circle forms the arc) 
-	void makeArc(List<Vector3> l, Vector3 startPos, Vector3 endDelta, float lateralDist, int numPoints) {
+	// in other words, it is a single float value that gives our distance to the 
+	// left (negatively) or the right (positively), where we place
+	// the center of the circle (a select segment of the perimeter of this circle forms the arc) 
+	void makeArcedPathSection(
+		int numVerts,
+		Vector3 startPos, 
+		Vector3 endDelta, 
+		float startAng, 
+		float endAng, 
+		float width,  // ang = Y euler angle 
+		Vector3 pivotAnchor
+		//float lateralDist
+	) {
+		int numDoublings = 1;
+
+		//var pivotAnchor = Quaternion.Euler(0, startAng, 0) * (Vector3.left*lateralDist);//(endPos-startPos)/2 + rtt.right*lateralDist;
+		//		makePoint(pivotAnchor, Color.red);		// show center point 
+
+		var startL = Quaternion.Euler(0, startAng, 0) * (Vector3.left * width/2);
+		var startR = Quaternion.Euler(0, startAng, 0) * (Vector3.right * width/2);
+		Debug.Log("startL: " + startL);
+		Debug.Log("startR: " + startR);
+		var endL = Quaternion.Euler(0, endAng, 0) * (Vector3.left * width/2);
+		var endR = Quaternion.Euler(0, endAng, 0) * (Vector3.right * width/2);
+		Debug.Log("endL: " + endL);
+		Debug.Log("endR: " + endR);
+		startL = startPos + startL;
+		startR = startPos + startR;
+		Debug.Log("startL: " + startL);
+		Debug.Log("startR: " + startR);
+		endL = (startPos + endDelta) + endL;
+		endR = (startPos + endDelta) + endR;
+		Debug.Log("endL: " + endL);
+		Debug.Log("endR: " + endR);
+
+		makeArc(lefts, startL, endL, pivotAnchor, numVerts);
+		//numVerts = getNumVertsForThisManyEdgeDoublings(numDoublings, numVerts);
+		makeArc(rights,	startR, endR, pivotAnchor, numVerts);
+
+		stitchLeftEdgesToDoubledRightEdges(numDoublings);
+	}
+
+
+	void makeArc(List<Vector3> l, Vector3 startPos, Vector3 endPos, Vector3 pivotAnchor, int numPoints) {
 		float curr = 0f; // current point in 0f - 1f spectrum 
 		float inc = 1f / (numPoints-1); // increment interval through spectrum
 
-		tr.forward = endDelta;
-		var pivotAnchor = startPos + endDelta/2 + tr.right*lateralDist;
-		//		makePoint(pivotAnchor, Color.red);		// show center point 
+		//rtt.forward = endDelta;
 		var beg = startPos - pivotAnchor; // beginning direction  
-		var end = (startPos + endDelta) - pivotAnchor; // end direction 
+		var end = endPos - pivotAnchor; // end direction 
 
 		for (int i = 0; i < numPoints; i++) {
 			makePoint(pivotAnchor + Vector3.Slerp(beg, end, curr), Color.black, l);
@@ -125,7 +152,7 @@ public class ProcPath : MonoBehaviour {
 		var o = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 		o.transform.position = v;
 		o.transform.localScale = new Vector3(f, f, f);
-		o.transform.SetParent(tr, false);
+		o.transform.SetParent(rtt, false);
 		o.GetComponent<Renderer>().material.color = c;
 		l.Add(v);
 	}
@@ -166,10 +193,6 @@ public class ProcPath : MonoBehaviour {
 		// "rungs" here, refers to the "straight out" (radially from the centerpoint arc is plotted from)
 		// lines, one for each inside edge point 
 		// a rung-to-rung run is a repeatable chunk pattern of the section we are building
-
-
-		// TODO when expanding functionality to allow for more than 1 doubling:
-		// each RLRTriangle, could be expanded to be a fan with multiple tris.  if there is more than 1 doubling. 
 
 		for (; lId < lefts.Count; lId++) {
 			// do one chunk 
