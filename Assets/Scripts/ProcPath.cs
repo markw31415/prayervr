@@ -31,9 +31,20 @@ public class ProcPath : MonoBehaviour {
 	int currVert = 0; // current vertex index 
 	int lId = 0; // left index 
 	int rId = 0; // right index 
-	float rad = 2048f; // radius of entire labyrinth path 
-	float wid = 3f; // path width 
-	float goldenRatio = 1.61803398875f;
+	static float rad = 100f; // radius of entire labyrinth path 
+	static float goldenRatio = 1.61803398875f;
+	static float smallerPercentage = 1f / goldenRatio;
+	static float biggerPercentage = 1f - smallerPercentage;
+	// widths 
+	static float layerWid = rad * 0.75f / 7; // repeatable ring layers of the labyrinth, imagining it as an onion. 
+	// starting from the outside edge of entire labyrinth, each layer has these zones:
+	// 		(1) grass dotted with trees/bamboo
+	//		(2) outer hedge
+	//		(3) path
+	//		(4) inner hedge
+	float hedgeWid = smallerPercentage * layerWid / 2;
+	float pathWid = biggerPercentage * layerWid / 2;
+	// for now, the path & the dotted grass rings will share the same width
 
 	//Vector3 currPos = new Vector3(385f, 1.5f, 447f);
 	Transform tr;
@@ -84,6 +95,17 @@ public class ProcPath : MonoBehaviour {
 
 		pivotAnchor = new Vector3(0f, 0, -36f);
 		makeArcedPathSection(15, new Vector3(0, 0, -48f), new Vector3(0, 0, 15f), 90f, -90f, 4f, pivotAnchor);
+
+		// iterate through the southeast corner, making the largest elbow path sections (parallel to each other) 
+		var currDelta = rad;
+		var begPath = new Vector3(0, 0, -rad); // FIXME: push in to allow room for outer dotted grass and hedge rings
+		var endDelta = new Vector3(currDelta, 0, currDelta);
+
+		for (int i = 0; i < 7; i++) {
+			makeArcedPathSection(30, begPath, new Vector3(rad, 0, rad), 90f, 0f, 4f, Vector3.zero);
+			begPath.z += layerWid;
+			currDelta -= layerWid;
+		}
 	}
 
 
@@ -136,7 +158,6 @@ public class ProcPath : MonoBehaviour {
 		float curr = 0f; // current point in 0f - 1f spectrum 
 		float inc = 1f / (numPoints-1); // increment interval through spectrum
 
-		//rtt.forward = endDelta;
 		var beg = startPos - pivotAnchor; // beginning direction  
 		var end = endPos - pivotAnchor; // end direction 
 
