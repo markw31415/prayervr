@@ -76,7 +76,7 @@ public class ProcPath : MonoBehaviour {
 		m = new Mesh();
 		mf.mesh = m;
 
-		setupIntermediateStructures();
+		setupPathGeometry();
 
 		// build final mesh
 		m.vertices = verts.ToArray();
@@ -86,24 +86,49 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	void setupIntermediateStructures() {
-		var pivotAnchor = new Vector3(-6f, 0, 0f);
-		makeArcedPathSection(5, Vector3.zero, new Vector3(-6f, 0, 6f), 0f, -90f, 4f, pivotAnchor);
+	void setupPathGeometry() {
+		var currPos = Vector3.zero;
+		var currAng = 22.5f; //0f;
 
-		pivotAnchor = Vector3.zero;
-		makeArcedPathSection(15, new Vector3(-6f, 0, 6f), new Vector3(6f, 0, -30f), -90f, -270f, 4f, pivotAnchor);
+		for (int i = 0; i < 16; i++) {
+			var endDelta = Quaternion.Euler(0, currAng, 0) * new Vector3(-6f, 0, 6f);
+			var pivotAnch = Quaternion.Euler(0, currAng, 0) * new Vector3(-6f, 0, 0f);
+			makeArcedPathSection(5, currPos, endDelta, currAng, currAng-90f, 4f, currPos + pivotAnch);
 
-		pivotAnchor = new Vector3(0f, 0, -36f);
-		makeArcedPathSection(15, new Vector3(0, 0, -48f), new Vector3(0, 0, 15f), 90f, -90f, 4f, pivotAnchor);
+			currPos.z += 9f;
+			currAng -= 22.5f;
+		}
+
+		//pivotAnchor = Vector3.zero;
+		//makeArcedPathSection(15, new Vector3(-6f, 0, 6f), new Vector3(6f, 0, -30f), -90f, -270f, 4f, pivotAnchor);
+
+		//pivotAnchor = new Vector3(0f, 0, -36f);
+		//makeArcedPathSection(15, new Vector3(0, 0, -48f), new Vector3(0, 0, 15f), 90f, -90f, 4f, pivotAnchor);
 
 		// iterate through the southeast corner, making the largest elbow path sections (parallel to each other) 
 		var currDelta = rad;
 		var begPath = new Vector3(0, 0, -rad); // FIXME: push in to allow room for outer dotted grass and hedge rings
-		var endDelta = new Vector3(currDelta, 0, currDelta);
 
+		var latestDelta = Vector3.zero;
 		for (int i = 0; i < 7; i++) {
-			makeArcedPathSection(30, begPath, new Vector3(rad, 0, rad), 90f, 0f, 4f, Vector3.zero);
+			latestDelta = new Vector3(currDelta, 0, currDelta);
+			makeArcedPathSection(30, begPath, latestDelta, 90f, 0f, 4f, Vector3.zero);
 			begPath.z += layerWid;
+			currDelta -= layerWid;
+		}
+
+		begPath.z -= layerWid;
+		begPath += latestDelta;
+		var delta = new Vector3(12f, 0, 0);
+		//var delta = new Vector3(-6, 0, 6);
+		makeArcedPathSection(15, begPath, delta, 180f, 0f, 4f, begPath + new Vector3(-6, 0, 0));
+
+		currDelta = rad;
+		begPath = new Vector3(rad, 0, 3f); 
+		for (int i = 0; i < 7; i++) {
+			latestDelta = new Vector3(-currDelta, 0, currDelta);
+			makeArcedPathSection(30, begPath, latestDelta, 0f, -90f, 4f, Vector3.zero);
+			begPath.x -= layerWid;
 			currDelta -= layerWid;
 		}
 	}
@@ -131,18 +156,14 @@ public class ProcPath : MonoBehaviour {
 
 		var startL = Quaternion.Euler(0, startAng, 0) * (Vector3.left * width/2);
 		var startR = Quaternion.Euler(0, startAng, 0) * (Vector3.right * width/2);
+		startL += startPos;
+		startR += startPos;
 		Debug.Log("startL: " + startL);
 		Debug.Log("startR: " + startR);
 		var endL = Quaternion.Euler(0, endAng, 0) * (Vector3.left * width/2);
 		var endR = Quaternion.Euler(0, endAng, 0) * (Vector3.right * width/2);
-		Debug.Log("endL: " + endL);
-		Debug.Log("endR: " + endR);
-		startL = startPos + startL;
-		startR = startPos + startR;
-		Debug.Log("startL: " + startL);
-		Debug.Log("startR: " + startR);
-		endL = (startPos + endDelta) + endL;
-		endR = (startPos + endDelta) + endR;
+		endL += (startPos + endDelta);
+		endR += (startPos + endDelta);
 		Debug.Log("endL: " + endL);
 		Debug.Log("endR: " + endR);
 
