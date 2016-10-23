@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 /* 			NOTES: 
  *  
+ * elbow = a shape like an elbow macaroni.  or a corner curve track piece that would end up rotating slot cars -/+ 90 degrees
+ * 
  * LLR == triangles that are defined by points in this order: left, left, right
  * RLR == triangles that are defined by points in this order: right, left, right
  * (from the separate "lefts"/"rights" vertex lists) 
@@ -32,6 +34,7 @@ public class ProcPath : MonoBehaviour {
 	int lId = 0; // left index 
 	int rId = 0; // right index 
 	static float rad = 100f; // radius of entire labyrinth path 
+	static float inset = 10f; // distance from the 0 point of each axis/dimension  
 	static float goldenRatio = 1.61803398875f;
 	static float smallerPercentage = 1f / goldenRatio;
 	static float biggerPercentage = 1f - smallerPercentage;
@@ -62,7 +65,12 @@ public class ProcPath : MonoBehaviour {
 	List<Vector2> uvs = new List<Vector2>();
 	List<int> triIndices = new List<int>();
 
-
+	enum Quadrant {
+		NorthEast,
+		NorthWest,
+		SouthEast,
+		SouthWest
+	}
 
 	void Start() {
 		//RenderSettings.ambientIntensity = 3f;
@@ -86,50 +94,93 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
+	Vector3 latestDelta;
 	void setupPathGeometry() {
-		var currPos = Vector3.zero;
-		var currAng = 22.5f; //0f;
+		var currPos = new Vector3(0, 0, 12f);
+		var currAng = 0f;
 
-		for (int i = 0; i < 16; i++) {
+		// 1st elbow coming out of center of labyrinth (iterations above 1 are for a debug visual, to make sure all angles were handled) 
+		for (int i = 0; i < 1/*9*/; i++) {
 			var endDelta = Quaternion.Euler(0, currAng, 0) * new Vector3(-6f, 0, 6f);
 			var pivotAnch = Quaternion.Euler(0, currAng, 0) * new Vector3(-6f, 0, 0f);
 			makeArcedPathSection(5, currPos, endDelta, currAng, currAng-90f, 4f, currPos + pivotAnch);
 
-			currPos.z += 9f;
-			currAng -= 22.5f;
+			currPos.z += 17f;
+			currAng -= 45f;
 		}
 
-		//pivotAnchor = Vector3.zero;
-		//makeArcedPathSection(15, new Vector3(-6f, 0, 6f), new Vector3(6f, 0, -30f), -90f, -270f, 4f, pivotAnchor);
+		currPos = new Vector3(inset, 0, -rad);
+		var endD = new Vector3(-inset, 0, 7f); // delta from start to end point 
+		makeArcedPathSection(7, currPos, endD, -90f, 0f, 4f, currPos + new Vector3(0, 0, 6));
 
-		//pivotAnchor = new Vector3(0f, 0, -36f);
-		//makeArcedPathSection(15, new Vector3(0, 0, -48f), new Vector3(0, 0, 15f), 90f, -90f, 4f, pivotAnchor);
+		// the one straight piece
+		currPos += endD;
+		makeArcedPathSection(2, currPos, new Vector3(0, 0, layerWid*4), 0f, 0f, 4f, currPos + new Vector3(Mathf.Infinity, 0, 0));
 
-		// iterate through the southeast corner, making the largest elbow path sections (parallel to each other) 
-		var currDelta = rad;
-		var begPath = new Vector3(0, 0, -rad); // FIXME: push in to allow room for outer dotted grass and hedge rings
+		currPos = new Vector3(inset, 0, -rad+5*layerWid);
+		endD = new Vector3(-inset, 0, -layerWid/2);
+		makeArcedPathSection(7, currPos, endD, -90f, -180f, 4f, currPos + new Vector3(layerWid/2, 0, -layerWid/2));
+		endD += currPos;
 
-		var latestDelta = Vector3.zero;
-		for (int i = 0; i < 7; i++) {
-			latestDelta = new Vector3(currDelta, 0, currDelta);
-			makeArcedPathSection(30, begPath, latestDelta, 90f, 0f, 4f, Vector3.zero);
-			begPath.z += layerWid;
-			currDelta -= layerWid;
-		}
+		currPos = new Vector3(inset, 0, -rad+6*layerWid);
+		makeArcedPathSection(7, currPos, new Vector3(-inset, 0, 7f), -90f, 0f, 4f, currPos + new Vector3(0, 0, 6));
 
-		begPath.z -= layerWid;
-		begPath += latestDelta;
+
+
+		makeConcentricElbowsFor(Quadrant.SouthEast, new Vector3(inset, 0, -rad)); 
+
+		// make a hairpin elbow (to connect 2 big elbows)
+		/*
+		pathStart.z -= layerWid;
+		pathStart += latestDelta;
 		var delta = new Vector3(12f, 0, 0);
 		//var delta = new Vector3(-6, 0, 6);
-		makeArcedPathSection(15, begPath, delta, 180f, 0f, 4f, begPath + new Vector3(-6, 0, 0));
+		makeArcedPathSection(15, pathStart, delta, 180f, 0f, 4f, pathStart + new Vector3(-6, 0, 0));
+		*/
 
-		currDelta = rad;
-		begPath = new Vector3(rad, 0, 3f); 
-		for (int i = 0; i < 7; i++) {
-			latestDelta = new Vector3(-currDelta, 0, currDelta);
-			makeArcedPathSection(30, begPath, latestDelta, 0f, -90f, 4f, Vector3.zero);
-			begPath.x -= layerWid;
-			currDelta -= layerWid;
+		makeConcentricElbowsFor(Quadrant.NorthEast, new Vector3(rad, 0, inset));
+		makeConcentricElbowsFor(Quadrant.NorthWest, new Vector3(-inset, 0, rad));
+		makeConcentricElbowsFor(Quadrant.SouthWest, new Vector3(-rad, 0, -inset));
+	}
+
+
+	void makeConcentricElbowsFor(Quadrant q, Vector3 pathStart) {
+		int num = 8; // number of vertices per edge 
+		var currRadDist = rad; // current radial distance (from center of labyrinth) 
+
+		switch (q) {
+			case Quadrant.SouthEast:
+				for (int i = 0; i < 7; i++) {
+					latestDelta = new Vector3(currRadDist-inset, 0, currRadDist-inset);
+					makeArcedPathSection(num, pathStart, latestDelta, 90f, 0f, 4f, Vector3.zero);
+					pathStart.z += layerWid;
+					currRadDist -= layerWid;
+				}
+				break;
+			case Quadrant.NorthEast:
+				for (int i = 0; i < 7; i++) {
+					latestDelta = new Vector3(-currRadDist+inset, 0, currRadDist-inset);
+					makeArcedPathSection(num, pathStart, latestDelta, 0f, -90f, 4f, Vector3.zero);
+					pathStart.x -= layerWid;
+					currRadDist -= layerWid;
+				}
+				break;
+			case Quadrant.NorthWest:
+				for (int i = 0; i < 7; i++) {
+					latestDelta = new Vector3(-currRadDist+inset, 0, -currRadDist+inset);
+					makeArcedPathSection(num, pathStart, latestDelta, -90f, -180f, 4f, Vector3.zero);
+					pathStart.z -= layerWid;
+					currRadDist -= layerWid;
+				}
+				break;
+			case Quadrant.SouthWest:
+				for (int i = 0; i < 7; i++) {
+					latestDelta = new Vector3(currRadDist-inset, 0, -currRadDist+inset);
+					makeArcedPathSection(num, pathStart, latestDelta, -180f, -270f, 4f, Vector3.zero);
+					pathStart.x += layerWid;
+					currRadDist -= layerWid;
+				}
+				break;
 		}
 	}
 
@@ -190,12 +241,12 @@ public class ProcPath : MonoBehaviour {
 
 
 	void makePoint(Vector3 v, Color c, List<Vector3> l) {
-		var f = 0.2f;
+		/*var f = 0.2f;
 		var o = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 		o.transform.position = v;
 		o.transform.localScale = new Vector3(f, f, f);
 		o.transform.SetParent(rtt, false);
-		o.GetComponent<Renderer>().material.color = c;
+		o.GetComponent<Renderer>().material.color = c;*/
 		l.Add(v);
 	}
 
