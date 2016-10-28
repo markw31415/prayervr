@@ -103,7 +103,10 @@ public class ProcPath : MonoBehaviour {
 		for (int i = 0; i < 1/*9*/; i++) {
 			var endDelta = Quaternion.Euler(0, currAng, 0) * new Vector3(-6f, 0, 6f);
 			var pivotAnch = Quaternion.Euler(0, currAng, 0) * new Vector3(-6f, 0, 0f);
-			makeArcedPathSection(5, currPos, endDelta, currAng, currAng-90f, 4f, currPos + pivotAnch);
+			makeArcedPathSection(5, 
+				currPos, endDelta, 
+				currAng, currAng-90f, 4f, 
+				currPos + pivotAnch);
 
 			currPos.z += 17f;
 			currAng -= 45f;
@@ -111,19 +114,31 @@ public class ProcPath : MonoBehaviour {
 
 		currPos = new Vector3(inset, 0, -rad);
 		var endD = new Vector3(-inset, 0, 7f); // delta from start to end point 
-		makeArcedPathSection(7, currPos, endD, -90f, 0f, 4f, currPos + new Vector3(0, 0, 6));
+		makeArcedPathSection(7, 
+			currPos, endD, 
+			-90f, 0f, 4f, 
+			currPos + new Vector3(0, 0, 6));
 
-		// the one straight piece
+		// the 2nd straight piece 
 		currPos += endD;
-		makeArcedPathSection(2, currPos, new Vector3(0, 0, layerWid*4), 0f, 0f, 4f, currPos + new Vector3(Mathf.Infinity, 0, 0));
+		makeArcedPathSection(2, 
+			currPos, new Vector3(0, 0, layerWid*4), 
+			0f, 0f, 4f, 
+			currPos + new Vector3(Mathf.Infinity, 0, 0));
 
 		currPos = new Vector3(inset, 0, -rad+5*layerWid);
 		endD = new Vector3(-inset, 0, -layerWid/2);
-		makeArcedPathSection(7, currPos, endD, -90f, -180f, 4f, currPos + new Vector3(layerWid/2, 0, -layerWid/2));
+		makeArcedPathSection(7, 
+			currPos, endD, 
+			-90f, -180f, 4f, 
+			currPos + new Vector3(layerWid/2, 0, -layerWid/2));
 		endD += currPos;
 
 		currPos = new Vector3(inset, 0, -rad+6*layerWid);
-		makeArcedPathSection(7, currPos, new Vector3(-inset, 0, 7f), -90f, 0f, 4f, currPos + new Vector3(0, 0, 6));
+		makeArcedPathSection(7, 
+			currPos, new Vector3(-inset, 0, 7f), 
+			-90f, 0f, 4f, 
+			currPos + new Vector3(0, 0, 6));
 
 
 
@@ -185,20 +200,14 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	// lateralDist: ....to the center of a circle.  which is the LATERAL distance away (considering
-	// the "movement" direction) from the center point (which lies between our current pos and the endpoint target pos). 
-	// in other words, it is a single float value that gives our distance to the 
-	// left (negatively) or the right (positively), where we place
-	// the center of the circle (a select segment of the perimeter of this circle forms the arc) 
 	void makeArcedPathSection(
 		int numVerts,
-		Vector3 startPos, 
-		Vector3 endDelta, 
+		float width,  // ang = euler angle in Y 
 		float startAng, 
 		float endAng, 
-		float width,  // ang = Y euler angle 
+		Vector3 startPos, 
+		Vector3 endDelta, 
 		Vector3 pivotAnchor
-		//float lateralDist
 	) {
 		int numDoublings = 1;
 
