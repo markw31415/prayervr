@@ -98,14 +98,17 @@ public class ProcPath : MonoBehaviour {
 	void setupPathGeometry() {
 		var currPos = new Vector3(0, 0, 12f);
 		var currAng = 0f;
+		var wid = 4f;
 
-		// 1st elbow coming out of center of labyrinth (iterations above 1 are for a debug visual, to make sure all angles were handled) 
+		// 1st elbow 
+		// (any iterations above 1 are for a debug visual, to make sure all angles look good.  
+		// it lays out a column of elbows, each next 1 is rotated a bit more) 
 		for (int i = 0; i < 1/*9*/; i++) {
 			var endDelta = Quaternion.Euler(0, currAng, 0) * new Vector3(-6f, 0, 6f);
 			var pivotAnch = Quaternion.Euler(0, currAng, 0) * new Vector3(-6f, 0, 0f);
-			makeArcedPathSection(5, 
-				currPos, endDelta, 
-				currAng, currAng-90f, 4f, 
+			makeArcedPathSection(5, wid, currAng, currAng-90f,
+				currPos, 
+				endDelta, 
 				currPos + pivotAnch);
 
 			currPos.z += 17f;
@@ -114,45 +117,35 @@ public class ProcPath : MonoBehaviour {
 
 		currPos = new Vector3(inset, 0, -rad);
 		var endD = new Vector3(-inset, 0, 7f); // delta from start to end point 
-		makeArcedPathSection(7, 
-			currPos, endD, 
-			-90f, 0f, 4f, 
+		makeArcedPathSection(7, wid, -90f, 0f, 
+			currPos, 
+			endD, 
 			currPos + new Vector3(0, 0, 6));
 
 		// the 2nd straight piece 
 		currPos += endD;
-		makeArcedPathSection(2, 
-			currPos, new Vector3(0, 0, layerWid*4), 
-			0f, 0f, 4f, 
+		makeArcedPathSection(2, wid, 0f, 0f, 
+			currPos, 
+			new Vector3(0, 0, layerWid*4), 
 			currPos + new Vector3(Mathf.Infinity, 0, 0));
 
 		currPos = new Vector3(inset, 0, -rad+5*layerWid);
 		endD = new Vector3(-inset, 0, -layerWid/2);
-		makeArcedPathSection(7, 
-			currPos, endD, 
-			-90f, -180f, 4f, 
+		makeArcedPathSection(7, wid, -90f, -180f, 
+			currPos, 
+			endD, 
 			currPos + new Vector3(layerWid/2, 0, -layerWid/2));
 		endD += currPos;
 
+		// last elbow going into center of labyrinth 
 		currPos = new Vector3(inset, 0, -rad+6*layerWid);
-		makeArcedPathSection(7, 
-			currPos, new Vector3(-inset, 0, 7f), 
-			-90f, 0f, 4f, 
+		makeArcedPathSection(7, wid, -90f, 0f, 
+			currPos, 
+			new Vector3(-inset, 0, 7f), 
 			currPos + new Vector3(0, 0, 6));
 
 
-
 		makeConcentricElbowsFor(Quadrant.SouthEast, new Vector3(inset, 0, -rad)); 
-
-		// make a hairpin elbow (to connect 2 big elbows)
-		/*
-		pathStart.z -= layerWid;
-		pathStart += latestDelta;
-		var delta = new Vector3(12f, 0, 0);
-		//var delta = new Vector3(-6, 0, 6);
-		makeArcedPathSection(15, pathStart, delta, 180f, 0f, 4f, pathStart + new Vector3(-6, 0, 0));
-		*/
-
 		makeConcentricElbowsFor(Quadrant.NorthEast, new Vector3(rad, 0, inset));
 		makeConcentricElbowsFor(Quadrant.NorthWest, new Vector3(-inset, 0, rad));
 		makeConcentricElbowsFor(Quadrant.SouthWest, new Vector3(-rad, 0, -inset));
