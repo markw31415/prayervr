@@ -96,20 +96,25 @@ public class ProcPath : MonoBehaviour {
 
 	Vector3 latestDelta;
 	void setupPathGeometry() {
-		var currPos = new Vector3(0, 0, 12f);
-		var currAng = 0f;
-		var wid = 4f;
+		// make 1st 2 verts for the starting entrance archway of the labyrinth 
+		addVertAndUv(new Vector3(-pathWid/2, 0, -rad));
+		addVertAndUv(new Vector3(pathWid/2, 0, -rad));
+		// TODO: make makeArcedPath() connect to the first 2 orphan vertices (if currVertId <= 2) 
 
+		var currPos = new Vector3(-layerWid, 0, -rad+layerWid*3);
+		var currAng = 0f;
 		// 1st elbow 
 		// (any iterations above 1 are for a debug visual, to make sure all angles look good.  
 		// it lays out a column of elbows, each next 1 is rotated a bit more) 
 		for (int i = 0; i < 1/*9*/; i++) {
-			var endDelta = Quaternion.Euler(0, currAng, 0) * new Vector3(-6f, 0, 6f);
-			var pivotAnch = Quaternion.Euler(0, currAng, 0) * new Vector3(-6f, 0, 0f);
-			makeArcedPathSection(5, wid, currAng, currAng-90f,
+			var endDelta = new Vector3(/*0*/ -layerWid, 0, layerWid);
+			//var endDelta = Quaternion.Euler(0, currAng, 0) * new Vector3(-6f, 0, 6f);
+			var pivotAnch = currPos + new Vector3(-layerWid, 0, 0);
+			//var pivotAnch = Quaternion.Euler(0, currAng, 0) * new Vector3(-6f, 0, 0f);
+			makeArcedPathSection(5, pathWid, currAng, currAng-90f,
 				currPos, 
 				endDelta, 
-				currPos + pivotAnch);
+				/*currPos + */pivotAnch);
 
 			currPos.z += 17f;
 			currAng -= 45f;
@@ -117,21 +122,21 @@ public class ProcPath : MonoBehaviour {
 
 		currPos = new Vector3(inset, 0, -rad);
 		var endD = new Vector3(-inset, 0, 7f); // delta from start to end point 
-		makeArcedPathSection(7, wid, -90f, 0f, 
+		makeArcedPathSection(7, pathWid, -90f, 0f, 
 			currPos, 
 			endD, 
 			currPos + new Vector3(0, 0, 6));
 
 		// the 2nd straight piece 
 		currPos += endD;
-		makeArcedPathSection(2, wid, 0f, 0f, 
+		makeArcedPathSection(2, pathWid, 0f, 0f, 
 			currPos, 
 			new Vector3(0, 0, layerWid*4), 
 			currPos + new Vector3(Mathf.Infinity, 0, 0));
 
 		currPos = new Vector3(inset, 0, -rad+5*layerWid);
 		endD = new Vector3(-inset, 0, -layerWid/2);
-		makeArcedPathSection(7, wid, -90f, -180f, 
+		makeArcedPathSection(7, pathWid, -90f, -180f, 
 			currPos, 
 			endD, 
 			currPos + new Vector3(layerWid/2, 0, -layerWid/2));
@@ -139,7 +144,7 @@ public class ProcPath : MonoBehaviour {
 
 		// last elbow going into center of labyrinth 
 		currPos = new Vector3(inset, 0, -rad+6*layerWid);
-		makeArcedPathSection(7, wid, -90f, 0f, 
+		makeArcedPathSection(7, pathWid, -90f, 0f, 
 			currPos, 
 			new Vector3(-inset, 0, 7f), 
 			currPos + new Vector3(0, 0, 6));
@@ -160,7 +165,7 @@ public class ProcPath : MonoBehaviour {
 			case Quadrant.SouthEast:
 				for (int i = 0; i < 7; i++) {
 					latestDelta = new Vector3(currRadDist-inset, 0, currRadDist-inset);
-					makeArcedPathSection(num, pathStart, latestDelta, 90f, 0f, 4f, Vector3.zero);
+					makeArcedPathSection(num, pathWid, 90f, 0f, pathStart, latestDelta, Vector3.zero);
 					pathStart.z += layerWid;
 					currRadDist -= layerWid;
 				}
@@ -168,7 +173,7 @@ public class ProcPath : MonoBehaviour {
 			case Quadrant.NorthEast:
 				for (int i = 0; i < 7; i++) {
 					latestDelta = new Vector3(-currRadDist+inset, 0, currRadDist-inset);
-					makeArcedPathSection(num, pathStart, latestDelta, 0f, -90f, 4f, Vector3.zero);
+					makeArcedPathSection(num, pathWid, 0f, -90f, pathStart, latestDelta, Vector3.zero);
 					pathStart.x -= layerWid;
 					currRadDist -= layerWid;
 				}
@@ -176,15 +181,15 @@ public class ProcPath : MonoBehaviour {
 			case Quadrant.NorthWest:
 				for (int i = 0; i < 7; i++) {
 					latestDelta = new Vector3(-currRadDist+inset, 0, -currRadDist+inset);
-					makeArcedPathSection(num, pathStart, latestDelta, -90f, -180f, 4f, Vector3.zero);
+					makeArcedPathSection(num, pathWid, -90f, -180f, pathStart, latestDelta, Vector3.zero);
 					pathStart.z -= layerWid;
 					currRadDist -= layerWid;
 				}
 				break;
 			case Quadrant.SouthWest:
 				for (int i = 0; i < 7; i++) {
-					latestDelta = new Vector3(currRadDist-inset, 0, -currRadDist+inset);
-					makeArcedPathSection(num, pathStart, latestDelta, -180f, -270f, 4f, Vector3.zero);
+					latestDelta = new Vector3(currRadDist-inset/***/-layerWid*1.2f/***/, 0, -currRadDist+inset);
+					makeArcedPathSection(num, pathWid, -180f, -270f, pathStart, latestDelta, Vector3.zero);
 					pathStart.x += layerWid;
 					currRadDist -= layerWid;
 				}
