@@ -30,6 +30,7 @@ public class ProcPath : MonoBehaviour {
 	public Material mat;
 
 	// private 
+	int numDoublings = 1; // this is for asynchronous edge resolutions, but for now we aren't utilizing it 
 	int currVert = 0; // current vertex index 
 	int lId = 0; // left index 
 	int rId = 0; // right index 
@@ -46,8 +47,13 @@ public class ProcPath : MonoBehaviour {
 	//		(3) path
 	//		(4) inner hedge
 	float hedgeWid = smallerPercentage * layerWid / 2;
-	float pathWid = biggerPercentage * layerWid / 2;
-	// for now, the path & the dotted grass rings will share the same width
+	float pathWid = biggerPercentage * layerWid / 2; // for now, the path & the dotted grass rings will share the same width
+	List <LabyrinthQuadrant> labQuads = new List<LabyrinthQuadrant>() { 
+		new LabyrinthQuadrant(), 
+		new LabyrinthQuadrant(), 
+		new LabyrinthQuadrant(), 
+		new LabyrinthQuadrant() 
+	};
 
 	//Vector3 currPos = new Vector3(385f, 1.5f, 447f);
 	Transform tr;
@@ -65,10 +71,10 @@ public class ProcPath : MonoBehaviour {
 	List<Vector2> uvs = new List<Vector2>();
 	List<int> triIndices = new List<int>();
 
-	enum Quadrant {
+	enum Quadrant { // don't change this order, as they are used as indices 
+		SouthEast,
 		NorthEast,
 		NorthWest,
-		SouthEast,
 		SouthWest
 	}
 
@@ -76,7 +82,6 @@ public class ProcPath : MonoBehaviour {
 		//RenderSettings.ambientIntensity = 3f;
 		tr = transform;
 		rtt = transform;
-		//rtt = new Transform();
 		mf = gameObject.AddComponent<MeshFilter>();
 		mr = gameObject.AddComponent<MeshRenderer>();
 		mr.material = mat;
@@ -96,6 +101,12 @@ public class ProcPath : MonoBehaviour {
 
 	Vector3 latestDelta;
 	void setupPathGeometry() {
+		// setup a palette of vertices to add later
+		makeConcentricElbowsFor(Quadrant.SouthEast, new Vector3(inset, 0, -rad)); 
+		makeConcentricElbowsFor(Quadrant.NorthEast, new Vector3(rad, 0, inset));
+		makeConcentricElbowsFor(Quadrant.NorthWest, new Vector3(-inset, 0, rad));
+		makeConcentricElbowsFor(Quadrant.SouthWest, new Vector3(-rad, 0, -inset));
+
 		// make 1st 2 verts for the starting entrance archway of the labyrinth 
 		addVertAndUv(new Vector3(-pathWid/2, 0, -rad));
 		addVertAndUv(new Vector3(pathWid/2, 0, -rad));
@@ -103,6 +114,7 @@ public class ProcPath : MonoBehaviour {
 
 		var currPos = new Vector3(-layerWid, 0, -rad+layerWid*3);
 		var currAng = 0f;
+
 		// 1st elbow 
 		// (any iterations above 1 are for a debug visual, to make sure all angles look good.  
 		// it lays out a column of elbows, each next 1 is rotated a bit more) 
@@ -114,32 +126,43 @@ public class ProcPath : MonoBehaviour {
 			makeArcedPathSection(5, pathWid, currAng, currAng-90f,
 				currPos, 
 				endDelta, 
-				/*currPos + */pivotAnch);
+				/*currPos + */pivotAnch,
+				lefts, rights);
 
 			currPos.z += 17f;
 			currAng -= 45f;
 		}
 
+		// 1st of the big concentric elbows (reversed order & sides swapped) 
+		var lq = labQuads[(int)Quadrant.SouthWest];
+		lq.Rights[4].Reverse();
+		lq.Lefts[4].Reverse();
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[4], lq.Lefts[4]);
+
+		// 
 		currPos = new Vector3(inset, 0, -rad);
 		var endD = new Vector3(-inset, 0, 7f); // delta from start to end point 
 		makeArcedPathSection(7, pathWid, -90f, 0f, 
 			currPos, 
 			endD, 
-			currPos + new Vector3(0, 0, 6));
+			currPos + new Vector3(0, 0, 6),
+			lefts, rights);
 
 		// the 2nd straight piece 
 		currPos += endD;
 		makeArcedPathSection(2, pathWid, 0f, 0f, 
 			currPos, 
 			new Vector3(0, 0, layerWid*4), 
-			currPos + new Vector3(Mathf.Infinity, 0, 0));
+			currPos + new Vector3(Mathf.Infinity, 0, 0),
+			lefts, rights);
 
 		currPos = new Vector3(inset, 0, -rad+5*layerWid);
 		endD = new Vector3(-inset, 0, -layerWid/2);
 		makeArcedPathSection(7, pathWid, -90f, -180f, 
 			currPos, 
 			endD, 
-			currPos + new Vector3(layerWid/2, 0, -layerWid/2));
+			currPos + new Vector3(layerWid/2, 0, -layerWid/2),
+			lefts, rights);
 		endD += currPos;
 
 		// last elbow going into center of labyrinth 
@@ -147,25 +170,21 @@ public class ProcPath : MonoBehaviour {
 		makeArcedPathSection(7, pathWid, -90f, 0f, 
 			currPos, 
 			new Vector3(-inset, 0, 7f), 
-			currPos + new Vector3(0, 0, 6));
-
-
-		makeConcentricElbowsFor(Quadrant.SouthEast, new Vector3(inset, 0, -rad)); 
-		makeConcentricElbowsFor(Quadrant.NorthEast, new Vector3(rad, 0, inset));
-		makeConcentricElbowsFor(Quadrant.NorthWest, new Vector3(-inset, 0, rad));
-		makeConcentricElbowsFor(Quadrant.SouthWest, new Vector3(-rad, 0, -inset));
+			currPos + new Vector3(0, 0, 6),
+			lefts, rights);
 	}
 
 
 	void makeConcentricElbowsFor(Quadrant q, Vector3 pathStart) {
 		int num = 8; // number of vertices per edge 
 		var currRadDist = rad; // current radial distance (from center of labyrinth) 
+		var lq = labQuads[(int)q]; // labyrinth quadrant 
 
 		switch (q) {
 			case Quadrant.SouthEast:
 				for (int i = 0; i < 7; i++) {
 					latestDelta = new Vector3(currRadDist-inset, 0, currRadDist-inset);
-					makeArcedPathSection(num, pathWid, 90f, 0f, pathStart, latestDelta, Vector3.zero);
+					makeArcedPathSection(num, pathWid, 90f, 0f, pathStart, latestDelta, Vector3.zero, lq.Lefts[i], lq.Rights[i], false);
 					pathStart.z += layerWid;
 					currRadDist -= layerWid;
 				}
@@ -173,7 +192,7 @@ public class ProcPath : MonoBehaviour {
 			case Quadrant.NorthEast:
 				for (int i = 0; i < 7; i++) {
 					latestDelta = new Vector3(-currRadDist+inset, 0, currRadDist-inset);
-					makeArcedPathSection(num, pathWid, 0f, -90f, pathStart, latestDelta, Vector3.zero);
+					makeArcedPathSection(num, pathWid, 0f, -90f, pathStart, latestDelta, Vector3.zero, lq.Lefts[i], lq.Rights[i], false);
 					pathStart.x -= layerWid;
 					currRadDist -= layerWid;
 				}
@@ -181,7 +200,7 @@ public class ProcPath : MonoBehaviour {
 			case Quadrant.NorthWest:
 				for (int i = 0; i < 7; i++) {
 					latestDelta = new Vector3(-currRadDist+inset, 0, -currRadDist+inset);
-					makeArcedPathSection(num, pathWid, -90f, -180f, pathStart, latestDelta, Vector3.zero);
+					makeArcedPathSection(num, pathWid, -90f, -180f, pathStart, latestDelta, Vector3.zero, lq.Lefts[i], lq.Rights[i], false);
 					pathStart.z -= layerWid;
 					currRadDist -= layerWid;
 				}
@@ -189,7 +208,7 @@ public class ProcPath : MonoBehaviour {
 			case Quadrant.SouthWest:
 				for (int i = 0; i < 7; i++) {
 					latestDelta = new Vector3(currRadDist-inset/***/-layerWid*1.2f/***/, 0, -currRadDist+inset);
-					makeArcedPathSection(num, pathWid, -180f, -270f, pathStart, latestDelta, Vector3.zero);
+					makeArcedPathSection(num, pathWid, -180f, -270f, pathStart, latestDelta, Vector3.zero, lq.Lefts[i], lq.Rights[i], false);
 					pathStart.x += layerWid;
 					currRadDist -= layerWid;
 				}
@@ -205,13 +224,11 @@ public class ProcPath : MonoBehaviour {
 		float endAng, 
 		Vector3 startPos, 
 		Vector3 endDelta, 
-		Vector3 pivotAnchor
+		Vector3 pivotAnchor,
+		List<Vector3> lefts,
+		List<Vector3> rights,
+		bool addPointsToFinalList = true
 	) {
-		int numDoublings = 1;
-
-		//var pivotAnchor = Quaternion.Euler(0, startAng, 0) * (Vector3.left*lateralDist);//(endPos-startPos)/2 + rtt.right*lateralDist;
-		//		makePoint(pivotAnchor, Color.red);		// show center point 
-
 		var startL = Quaternion.Euler(0, startAng, 0) * (Vector3.left * width/2);
 		var startR = Quaternion.Euler(0, startAng, 0) * (Vector3.right * width/2);
 		startL += startPos;
@@ -229,7 +246,8 @@ public class ProcPath : MonoBehaviour {
 		//numVerts = getNumVertsForThisManyEdgeDoublings(numDoublings, numVerts);
 		makeArc(rights,	startR, endR, pivotAnchor, numVerts);
 
-		stitchLeftEdgesToDoubledRightEdges(numDoublings);
+		if (addPointsToFinalList)
+			stitchLeftEdgesToRightEdges(numDoublings, lefts, rights);
 	}
 
 
@@ -269,7 +287,7 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	void stitchLeftEdgesToDoubledRightEdges(int numDoublings) { // ....and fill intermediate lists 
+	void stitchLeftEdgesToRightEdges(int numDoublings, List<Vector3> lefts, List<Vector3> rights) { // ....and fill intermediate lists 
 		lId = 0; // left index 
 		rId = 0; // right index 
 		// make 1st rung (2 points, which are outside of subsequent repeatable patterns) 
@@ -302,8 +320,8 @@ public class ProcPath : MonoBehaviour {
 			if // it's a simple quad ladder 
 				(lefts.Count == rights.Count) 
 			{
-				makeOneRLRTriangle();
-				makeLLRTriangle();
+				makeOneRLRTriangle(rights);
+				makeLLRTriangle(lefts);
 			}else{ // it has more verts on the right, requiring 3 or more tris per chunk 
 				//while (rId <= rights.Count/2) {
 					makeRLRTriangleFan(2);
@@ -314,7 +332,7 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	void makeOneRLRTriangle() {
+	void makeOneRLRTriangle(List<Vector3> rights) {
 		addVertAndUv(rights[rId++]);
 
 		triIndices.Add(currVert - 3);
@@ -361,7 +379,7 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	void makeLLRTriangle() {
+	void makeLLRTriangle(List<Vector3> lefts) {
 		addVertAndUv(lefts[lId]);
 
 		triIndices.Add(currVert - 3);
