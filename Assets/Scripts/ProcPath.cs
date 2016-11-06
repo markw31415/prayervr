@@ -37,7 +37,7 @@ public class ProcPath : MonoBehaviour {
 	static float rad = 100f; // radius of entire labyrinth path 
 	static float inset = 10f; // distance from the 0 point of each axis/dimension  
 	static float goldenRatio = 1.61803398875f;
-	static float smallerPercentage = 1f / goldenRatio;
+	static float smallerPercentage = 1f / (goldenRatio + 1f);
 	static float biggerPercentage = 1f - smallerPercentage;
 	// widths 
 	static float layerWid = rad * 0.75f / 7; // repeatable ring layers of the labyrinth, imagining it as an onion. 
@@ -71,7 +71,7 @@ public class ProcPath : MonoBehaviour {
 	List<Vector2> uvs = new List<Vector2>();
 	List<int> triIndices = new List<int>();
 
-	enum Quadrant { // don't change this order, as they are used as indices 
+	enum Quadrant { // don't change this order, as they are also used as indices 
 		SouthEast,
 		NorthEast,
 		NorthWest,
@@ -112,33 +112,50 @@ public class ProcPath : MonoBehaviour {
 		addVertAndUv(new Vector3(pathWid/2, 0, -rad));
 		// TODO: make makeArcedPath() connect to the first 2 orphan vertices (if currVertId <= 2) 
 
+
+		// 1st small elbow 
 		var currPos = new Vector3(-layerWid, 0, -rad+layerWid*3);
-		var currAng = 0f;
-
-		// 1st elbow 
-		// (any iterations above 1 are for a debug visual, to make sure all angles look good.  
-		// it lays out a column of elbows, each next 1 is rotated a bit more) 
-		for (int i = 0; i < 1/*9*/; i++) {
-			var endDelta = new Vector3(/*0*/ -layerWid, 0, layerWid);
-			//var endDelta = Quaternion.Euler(0, currAng, 0) * new Vector3(-6f, 0, 6f);
-			var pivotAnch = currPos + new Vector3(-layerWid, 0, 0);
-			//var pivotAnch = Quaternion.Euler(0, currAng, 0) * new Vector3(-6f, 0, 0f);
-			makeArcedPathSection(5, pathWid, currAng, currAng-90f,
-				currPos, 
-				endDelta, 
-				/*currPos + */pivotAnch,
-				lefts, rights);
-
-			currPos.z += 17f;
-			currAng -= 45f;
-		}
+		var endDelta = new Vector3(/*0*/ -layerWid, 0, layerWid);
+		var pivotAnch = currPos + new Vector3(-layerWid, 0, 0);
+		makeArcedPathSection(5, pathWid, 0f, -90f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
 
 		// 1st of the big concentric elbows (reversed order & sides swapped) 
 		var lq = labQuads[(int)Quadrant.SouthWest];
-		lq.Rights[4].Reverse();
-		lq.Lefts[4].Reverse();
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[4], lq.Lefts[4]);
+		var ringNum = 4;
+		lq.Rights[ringNum].Reverse();
+		lq.Lefts[ringNum].Reverse();
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ringNum], lq.Lefts[ringNum]);
 
+		// 2nd small elbow 
+		/*currPos = new Vector3(-rad+layerWid*4, 0, -inset);
+		endDelta = new Vector3(layerWid, 0, 0);
+		pivotAnch = currPos + endDelta / 2;
+		makeArcedPathSection(10, pathWid, 0f, 178f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+		*/
+		// 2nd BIG elbow 
+		ringNum = 5;
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ringNum], lq.Lefts[ringNum]);
+
+		// 3rd BIG elbow 
+		ringNum = 6;
+		lq.Rights[ringNum].Reverse();
+		lq.Lefts[ringNum].Reverse();
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ringNum], lq.Lefts[ringNum]);
+
+
+
+
+
+
+		// at the moment, disconnected small pieces 
 		// 
 		currPos = new Vector3(inset, 0, -rad);
 		var endD = new Vector3(-inset, 0, 7f); // delta from start to end point 
@@ -178,7 +195,7 @@ public class ProcPath : MonoBehaviour {
 	void makeConcentricElbowsFor(Quadrant q, Vector3 pathStart) {
 		int num = 8; // number of vertices per edge 
 		var currRadDist = rad; // current radial distance (from center of labyrinth) 
-		var lq = labQuads[(int)q]; // labyrinth quadrant 
+		var lq = labQuads[(int)q]; // labyrinth quadrants 
 
 		switch (q) {
 			case Quadrant.SouthEast:
@@ -229,18 +246,19 @@ public class ProcPath : MonoBehaviour {
 		List<Vector3> rights,
 		bool addPointsToFinalList = true
 	) {
+		Debug.Log("\n makeArcedPathSection()");
 		var startL = Quaternion.Euler(0, startAng, 0) * (Vector3.left * width/2);
 		var startR = Quaternion.Euler(0, startAng, 0) * (Vector3.right * width/2);
 		startL += startPos;
 		startR += startPos;
-		Debug.Log("startL: " + startL);
-		Debug.Log("startR: " + startR);
+		//Debug.Log("startL: " + startL);
+		//Debug.Log("startR: " + startR);
 		var endL = Quaternion.Euler(0, endAng, 0) * (Vector3.left * width/2);
 		var endR = Quaternion.Euler(0, endAng, 0) * (Vector3.right * width/2);
 		endL += (startPos + endDelta);
 		endR += (startPos + endDelta);
-		Debug.Log("endL: " + endL);
-		Debug.Log("endR: " + endR);
+		//Debug.Log("endL: " + endL);
+		//Debug.Log("endR: " + endR);
 
 		makeArc(lefts, startL, endL, pivotAnchor, numVerts);
 		//numVerts = getNumVertsForThisManyEdgeDoublings(numDoublings, numVerts);
