@@ -287,7 +287,7 @@ public class ProcPath : MonoBehaviour {
 		lq = labQuads[(int)Quadrant.SouthEast];
 		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
 
-		// simple, single 90'ish degree elbow arc, which precedes the 2nd of 3 straight sections 
+		// simple elbow (single 90'ish degree arc), which precedes the 2nd of 3 straight sections 
 		currPos = new Vector3(inset, 0, -rad);
 		var endD = new Vector3(-inset, 0, 7f); // delta from start to end point 
 		makeArcedPathSection(7, pathWid, -90f, 0f, 
@@ -296,24 +296,25 @@ public class ProcPath : MonoBehaviour {
 			currPos + new Vector3(0, 0, 6),
 			lefts, rights);
 
-		// the 2nd straight piece 
-		/*currPos += endD;
-		makeArcedPathSection(2, pathWid, 0f, 0f, 
-			currPos, 
-			new Vector3(0, 0, layerWid*4), 
-			currPos + new Vector3(Mathf.Infinity, 0, 0),
-			lefts, rights);*/
-
-		currPos = new Vector3(inset, 0, -rad+5*layerWid);
-		endD = new Vector3(-inset, 0, -layerWid/2);
-		makeArcedPathSection(7, pathWid, -90f, -180f, 
+		// next to last simple elbow 
+		ri = 5;
+		var z = -rad+layerWid*ri;
+		currPos = new Vector3(0, 0, z-7f);
+		endD = new Vector3(inset, 0, 7f);
+		makeArcedPathSection(7, pathWid, 0f, 90f, 
 			currPos, 
 			endD, 
-			currPos + new Vector3(layerWid/2, 0, -layerWid/2),
+			currPos + new Vector3(inset, 0, 0),
 			lefts, rights);
 		endD += currPos;
 
-		// last elbow going into center of labyrinth 
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		makeNorthEdgeHairpinFromEastToWest(new Vector3(rad-layerWid*ri, 0, -inset));
+
+		ri = 6;
+		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+
+		// last simple elbow going into center of labyrinth 
 		currPos = new Vector3(inset, 0, -rad+6*layerWid);
 		makeArcedPathSection(7, pathWid, -90f, 0f, 
 			currPos, 
