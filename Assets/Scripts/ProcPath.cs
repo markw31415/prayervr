@@ -101,7 +101,9 @@ public class ProcPath : MonoBehaviour {
 
 	Vector3 latestDelta;
 	void setupPathGeometry() {
-		// setup a palette of vertices to add later
+		// setup a palette of vertices to use later 
+		// (we start at practically the southernmost point, in the center of the x axis, 
+		// starting with outermost elbow, moving counter-clockwise) 
 		makeConcentricElbowsFor(Quadrant.SouthEast, new Vector3(inset, 0, -rad)); 
 		makeConcentricElbowsFor(Quadrant.NorthEast, new Vector3(rad, 0, inset));
 		makeConcentricElbowsFor(Quadrant.NorthWest, new Vector3(-inset, 0, rad));
@@ -114,8 +116,8 @@ public class ProcPath : MonoBehaviour {
 
 
 		// 1st small elbow 
-		var currPos = new Vector3(-layerWid, 0, -rad+layerWid*3);
-		var endDelta = new Vector3(/*0*/ -layerWid, 0, layerWid);
+		var currPos = new Vector3(-inset/2, 0, -rad+layerWid*3);
+		var endDelta = new Vector3(-inset/2, 0, layerWid);
 		var pivotAnch = currPos + new Vector3(-layerWid, 0, 0);
 		makeArcedPathSection(5, pathWid, 0f, -90f,
 			currPos, 
@@ -123,40 +125,169 @@ public class ProcPath : MonoBehaviour {
 			pivotAnch,
 			lefts, rights);
 
-		// 1st of the big concentric elbows (reversed order & sides swapped) 
+		// 1st of the big concentric elbows 
 		var lq = labQuads[(int)Quadrant.SouthWest];
-		var ringNum = 4;
-		lq.Rights[ringNum].Reverse();
-		lq.Lefts[ringNum].Reverse();
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ringNum], lq.Lefts[ringNum]);
+		var ri = 4; // ring id/index 
+		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
 
 		// 2nd small elbow 
-		/*currPos = new Vector3(-rad+layerWid*4, 0, -inset);
-		endDelta = new Vector3(layerWid, 0, 0);
-		pivotAnch = currPos + endDelta / 2;
-		makeArcedPathSection(10, pathWid, 0f, 178f,
+		makeNorthEdgeHairpinFromWestToEast(new Vector3(-rad+layerWid*ri, 0, -inset));
+
+		// 2nd BIG elbow 
+		ri = 5;
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+
+		// 3rd small elbow 
+		makeEastEdgeHairpinFromSouthToNorth(new Vector3(-inset, 0, -rad+layerWid*ri));
+
+		// 3rd BIG elbow 
+		ri = 6;
+		lq.Rights[ri].Reverse();
+		lq.Lefts[ri].Reverse();
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ri], lq.Lefts[ri]);
+
+		// 1st quadrant bridge 
+		makeBridgeSectionBetweenQuadrants(0f, new Vector3(-rad+layerWid*ri, 0, -inset), new Vector3(0, 0, inset*2));
+
+		// 4th BIG elbow 
+		lq = labQuads[(int)Quadrant.NorthWest];
+		//ri = 6;
+		lq.Rights[ri].Reverse();
+		lq.Lefts[ri].Reverse();
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ri], lq.Lefts[ri]);
+
+		// 2nd quadrant bridge 
+		makeBridgeSectionBetweenQuadrants(90f, new Vector3(-inset, 0, rad-layerWid*ri), new Vector3(inset*2, 0, 0));
+
+		// 5th BIG elbow 
+		lq = labQuads[(int)Quadrant.NorthEast];
+		//ri = 6;
+		lq.Rights[ri].Reverse();
+		lq.Lefts[ri].Reverse();
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ri], lq.Lefts[ri]);
+
+		// 6th small elbow 
+		//ri = 6;
+		currPos = new Vector3(rad-layerWid*ri, 0, inset);
+		endDelta = new Vector3(layerWid/2, 0, -layerWid/2);
+		pivotAnch = currPos;
+		pivotAnch.x += layerWid/2;
+
+		makeArcedPathSection(5, pathWid, 180f, 90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
 			lefts, rights);
-		*/
-		// 2nd BIG elbow 
-		ringNum = 5;
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ringNum], lq.Lefts[ringNum]);
 
-		// 3rd BIG elbow 
-		ringNum = 6;
-		lq.Rights[ringNum].Reverse();
-		lq.Lefts[ringNum].Reverse();
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ringNum], lq.Lefts[ringNum]);
+		currPos += endDelta;
+		endDelta = new Vector3(layerWid/2, 0, layerWid/2);
 
+		makeArcedPathSection(5, pathWid, 90f, 0f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
 
+		// 6th BIG elbow 
+		ri = 5;
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
 
+		// 3rd quadrant bridge 
+		makeBridgeSectionBetweenQuadrants(-90f, new Vector3(inset, 0, rad-layerWid*ri), new Vector3(-inset*2, 0, 0));
 
+		// innermost NW big elbow
+		//ri = 5;
+		lq = labQuads[(int)Quadrant.NorthWest];
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
 
+		makeSouthEdgeHairpinFromEastToWest(new Vector3(-rad+layerWid*ri, 0, inset));
 
-		// at the moment, disconnected small pieces 
-		// 
+		// BIG elbow (3rd from center) 
+		ri = 4;
+		lq.Rights[ri].Reverse();
+		lq.Lefts[ri].Reverse();
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ri], lq.Lefts[ri]);
+
+		makeEastEdgeHairpinFromSouthToNorth(new Vector3(-inset, 0, rad-layerWid*ri));
+
+		// BIG elbow (4th from center)
+		ri = 3;
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+
+		makeBridgeSectionBetweenQuadrants(-180f, new Vector3(-rad+layerWid*ri, 0, inset), new Vector3(0, 0, -inset*2));
+
+		// BIG elbow (4th from center)
+		lq = labQuads[(int)Quadrant.SouthWest];
+		//ri = 3;
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+
+		makeEastEdgeHairpinFromNorthToSouth(new Vector3(-inset-layerWid/2, 0, -rad+layerWid*ri));
+
+		ri = 2;
+		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeNorthEdgeHairpinFromEastToWest(new Vector3(-rad+layerWid*ri, 0, -inset));
+
+		ri = 1;
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		makeEastEdgeHairpinFromNorthToSouth(new Vector3(-inset-layerWid/2, 0, -rad+layerWid));
+
+		ri = 0;
+		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+
+		makeBridgeSectionBetweenQuadrants(0f, new Vector3(-rad+layerWid*ri, 0, -inset), new Vector3(0, 0, inset*2));
+
+		lq = labQuads[(int)Quadrant.NorthWest];
+		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeEastEdgeHairpinFromNorthToSouth(new Vector3(-inset, 0, rad));
+
+		ri = 1;
+		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeSouthEdgeHairpinFromWestToEast(new Vector3(-rad+layerWid*ri, 0, inset));
+
+		ri = 2;
+		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeBridgeSectionBetweenQuadrants(90f, new Vector3(-inset, 0, rad-layerWid*ri), new Vector3(inset*2, 0, 0));
+
+		lq = labQuads[(int)Quadrant.NorthEast];
+		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeSouthEdgeHairpinFromEastToWest(new Vector3(rad-layerWid*ri, 0, inset));
+
+		ri = 3;
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		makeWestEdgeHairpinFromNorthToSouth(new Vector3(inset, 0, rad-layerWid*ri));
+
+		ri = 4;
+		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeBridgeSectionBetweenQuadrants(180f, new Vector3(rad-layerWid*ri, 0, inset), new Vector3(0, 0, -inset*2));
+
+		lq = labQuads[(int)Quadrant.SouthEast];
+		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeWestEdgeHairpinFromNorthToSouth(new Vector3(inset, 0, -rad+layerWid*ri));
+
+		ri = 3;
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		makeNorthEdgeHairpinFromWestToEast(new Vector3(rad-layerWid*ri, 0, -inset));
+
+		ri = 2;
+		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeWestEdgeHairpinFromNorthToSouth(new Vector3(inset, 0, -rad+layerWid*ri));
+
+		ri = 1;
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		makeBridgeSectionBetweenQuadrants(0f, new Vector3(rad-layerWid*ri, 0, -inset), new Vector3(0, 0, inset*2));
+
+		lq = labQuads[(int)Quadrant.NorthEast];
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		makeWestEdgeHairpinFromSouthToNorth(new Vector3(inset, 0, rad-layerWid*ri));
+
+		ri = 0;
+		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeBridgeSectionBetweenQuadrants(180f, new Vector3(rad-layerWid*ri, 0, inset), new Vector3(0, 0, -inset*2));
+
+		lq = labQuads[(int)Quadrant.SouthEast];
+		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+
+		// simple, single 90'ish degree elbow arc, which precedes the 2nd of 3 straight sections 
 		currPos = new Vector3(inset, 0, -rad);
 		var endD = new Vector3(-inset, 0, 7f); // delta from start to end point 
 		makeArcedPathSection(7, pathWid, -90f, 0f, 
@@ -166,12 +297,12 @@ public class ProcPath : MonoBehaviour {
 			lefts, rights);
 
 		// the 2nd straight piece 
-		currPos += endD;
+		/*currPos += endD;
 		makeArcedPathSection(2, pathWid, 0f, 0f, 
 			currPos, 
 			new Vector3(0, 0, layerWid*4), 
 			currPos + new Vector3(Mathf.Infinity, 0, 0),
-			lefts, rights);
+			lefts, rights);*/
 
 		currPos = new Vector3(inset, 0, -rad+5*layerWid);
 		endD = new Vector3(-inset, 0, -layerWid/2);
@@ -188,6 +319,198 @@ public class ProcPath : MonoBehaviour {
 			currPos, 
 			new Vector3(-inset, 0, 7f), 
 			currPos + new Vector3(0, 0, 6),
+			lefts, rights);
+	}
+
+
+	void makeBigElbowWithEdgesSwappedAndBackwards(LabyrinthQuadrant lq, int ringId) {
+		lq.Rights[ringId].Reverse();
+		lq.Lefts[ringId].Reverse();
+		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ringId], lq.Lefts[ringId]);
+	}
+
+
+	void makeBridgeSectionBetweenQuadrants(float angle, Vector3 currPos, Vector3 endDelta) {
+		makeArcedPathSection(4, pathWid, angle, angle,
+			currPos, 
+			endDelta, 
+			Vector3.zero,
+			lefts, rights);
+	}
+
+
+	void makeWestEdgeHairpinFromSouthToNorth(Vector3 currPos) {
+		var endDelta = new Vector3(-layerWid/2, 0, layerWid/2);
+		var pivotAnch = currPos;
+		pivotAnch.z += layerWid/2;
+
+		makeArcedPathSection(5, pathWid, -90f, 0f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+
+		currPos += endDelta;
+		endDelta = new Vector3(layerWid/2, 0, layerWid/2);
+
+		makeArcedPathSection(5, pathWid, 0f, 90f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+	}
+
+
+	void makeWestEdgeHairpinFromNorthToSouth(Vector3 currPos) {
+		var endDelta = new Vector3(-layerWid/2, 0, -layerWid/2);
+		var pivotAnch = currPos;
+		pivotAnch.z -= layerWid/2;
+
+		makeArcedPathSection(5, pathWid, -90f, 180f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+
+		currPos += endDelta;
+		endDelta = new Vector3(layerWid/2, 0, -layerWid/2);
+
+		makeArcedPathSection(5, pathWid, 180f, 90f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+	}
+
+
+	void makeEastEdgeHairpinFromNorthToSouth(Vector3 currPos) {
+		var endDelta = new Vector3(layerWid/2, 0, -layerWid/2);
+		var pivotAnch = currPos;
+		pivotAnch.z -= layerWid/2;
+
+		makeArcedPathSection(5, pathWid, 90f, 180f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+
+		currPos += endDelta;
+		endDelta = new Vector3(-layerWid/2, 0, -layerWid/2);
+
+		makeArcedPathSection(5, pathWid, 180f, -90f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+	}
+
+
+	void makeEastEdgeHairpinFromSouthToNorth(Vector3 currPos) {
+		var endDelta = new Vector3(layerWid/2, 0, layerWid/2);
+		var pivotAnch = currPos;
+		pivotAnch.z += layerWid/2;
+
+		makeArcedPathSection(5, pathWid, 90f, 0f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+
+		currPos += endDelta;
+		endDelta = new Vector3(-layerWid/2, 0, layerWid/2);
+
+		makeArcedPathSection(5, pathWid, 0f, -90f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+	}
+
+
+	void makeSouthEdgeHairpinFromWestToEast(Vector3 currPos) {
+		var endDelta = new Vector3(layerWid/2, 0, -layerWid/2);
+		var pivotAnch = currPos;
+		pivotAnch.x += layerWid/2;
+
+		makeArcedPathSection(5, pathWid, 180f, 90f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+
+		currPos += endDelta;
+		endDelta = new Vector3(layerWid/2, 0, layerWid/2);
+
+		makeArcedPathSection(5, pathWid, 90f, 0f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+	}
+
+
+	void makeSouthEdgeHairpinFromEastToWest(Vector3 currPos) {
+		var endDelta = new Vector3(-layerWid/2, 0, -layerWid/2);
+		var pivotAnch = currPos;
+		pivotAnch.x -= layerWid/2;
+
+		makeArcedPathSection(5, pathWid, -180f, -90f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+
+		currPos += endDelta;
+		endDelta = new Vector3(-layerWid/2, 0, layerWid/2);
+
+		makeArcedPathSection(5, pathWid, -90f, 0f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+	}
+
+
+	void makeNorthEdgeHairpinFromEastToWest(Vector3 currPos) {
+		var endDelta = new Vector3(-layerWid/2, 0, layerWid/2);
+		var pivotAnch = currPos;
+		pivotAnch.x -= layerWid/2;
+
+		makeArcedPathSection(5, pathWid, 0f, -90f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+
+		currPos += endDelta;
+		endDelta = new Vector3(-layerWid/2, 0, -layerWid/2);
+
+		makeArcedPathSection(5, pathWid, -90f, 180f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+	}
+
+
+	void makeNorthEdgeHairpinFromWestToEast(Vector3 currPos) {
+		var endDelta = new Vector3(layerWid/2, 0, layerWid/2);
+		var pivotAnch = currPos;
+		pivotAnch.x += layerWid/2;
+
+		makeArcedPathSection(5, pathWid, 0f, 90f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
+			lefts, rights);
+
+		currPos += endDelta;
+		endDelta = new Vector3(layerWid/2, 0, -layerWid/2);
+
+		makeArcedPathSection(5, pathWid, 90f, 180f,
+			currPos, 
+			endDelta, 
+			pivotAnch,
 			lefts, rights);
 	}
 
@@ -224,7 +547,11 @@ public class ProcPath : MonoBehaviour {
 				break;
 			case Quadrant.SouthWest:
 				for (int i = 0; i < 7; i++) {
-					latestDelta = new Vector3(currRadDist-inset/***/-layerWid*1.2f/***/, 0, -currRadDist+inset);
+					if (i < 4)
+						latestDelta = new Vector3(currRadDist-inset-layerWid/2, 0, -currRadDist+inset);
+					else
+						latestDelta = new Vector3(currRadDist-inset, /********/ 0, -currRadDist+inset);
+
 					makeArcedPathSection(num, pathWid, -180f, -270f, pathStart, latestDelta, Vector3.zero, lq.Lefts[i], lq.Rights[i], false);
 					pathStart.x += layerWid;
 					currRadDist -= layerWid;
