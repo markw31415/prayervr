@@ -31,6 +31,7 @@ public class ProcPath : MonoBehaviour {
 
 	// private 
 	int numDoublings = 1; // this is for asynchronous edge resolutions, but for now we aren't utilizing it 
+	int numEdgeVerts = 5; // ....for each half of a hairpin 
 	int currVert = 0; // current vertex index 
 	int lId = 0; // left index 
 	int rId = 0; // right index 
@@ -55,9 +56,6 @@ public class ProcPath : MonoBehaviour {
 		new LabyrinthQuadrant() 
 	};
 
-	//Vector3 currPos = new Vector3(385f, 1.5f, 447f);
-	Transform tr;
-	Transform rtt; // run-time transform 
 	Mesh m;
 	MeshFilter mf;
 	MeshRenderer mr;
@@ -79,9 +77,6 @@ public class ProcPath : MonoBehaviour {
 	}
 
 	void Start() {
-		//RenderSettings.ambientIntensity = 3f;
-		tr = transform;
-		rtt = transform;
 		mf = gameObject.AddComponent<MeshFilter>();
 		mr = gameObject.AddComponent<MeshRenderer>();
 		mr.material = mat;
@@ -95,7 +90,21 @@ public class ProcPath : MonoBehaviour {
 		m.vertices = verts.ToArray();
 		m.uv = uvs.ToArray();
 		m.triangles = triIndices.ToArray();
-		m.RecalculateNormals();
+		setAllNormalsPointingUp();
+	}
+
+
+	void setAllNormalsPointingUp() {
+		// usually you would just do "m.RecalculateNormals();".....
+		// ....however it works VERY slowly for this path (which doesn't need any fancy math) 
+
+		var norms = new Vector3[verts.Count];
+		var up = Vector3.up; // this actually takes a little time if not cached 
+
+		for (int i = 0; i < norms.Length; i++)
+			norms[i] = up;
+
+		m.normals = norms;
 	}
 
 
@@ -345,7 +354,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.z += layerWid/2;
 
-		makeArcedPathSection(5, pathWid, -90f, 0f,
+		makeArcedPathSection(numEdgeVerts, pathWid, -90f, 0f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -354,7 +363,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(layerWid/2, 0, layerWid/2);
 
-		makeArcedPathSection(5, pathWid, 0f, 90f,
+		makeArcedPathSection(numEdgeVerts, pathWid, 0f, 90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -367,7 +376,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.z -= layerWid/2;
 
-		makeArcedPathSection(5, pathWid, -90f, 180f,
+		makeArcedPathSection(numEdgeVerts, pathWid, -90f, 180f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -376,7 +385,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(layerWid/2, 0, -layerWid/2);
 
-		makeArcedPathSection(5, pathWid, 180f, 90f,
+		makeArcedPathSection(numEdgeVerts, pathWid, 180f, 90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -389,7 +398,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.z -= layerWid/2;
 
-		makeArcedPathSection(5, pathWid, 90f, 180f,
+		makeArcedPathSection(numEdgeVerts, pathWid, 90f, 180f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -398,7 +407,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(-layerWid/2, 0, -layerWid/2);
 
-		makeArcedPathSection(5, pathWid, 180f, -90f,
+		makeArcedPathSection(numEdgeVerts, pathWid, 180f, -90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -411,7 +420,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.z += layerWid/2;
 
-		makeArcedPathSection(5, pathWid, 90f, 0f,
+		makeArcedPathSection(numEdgeVerts, pathWid, 90f, 0f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -420,7 +429,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(-layerWid/2, 0, layerWid/2);
 
-		makeArcedPathSection(5, pathWid, 0f, -90f,
+		makeArcedPathSection(numEdgeVerts, pathWid, 0f, -90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -433,7 +442,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.x += layerWid/2;
 
-		makeArcedPathSection(5, pathWid, 180f, 90f,
+		makeArcedPathSection(numEdgeVerts, pathWid, 180f, 90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -442,7 +451,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(layerWid/2, 0, layerWid/2);
 
-		makeArcedPathSection(5, pathWid, 90f, 0f,
+		makeArcedPathSection(numEdgeVerts, pathWid, 90f, 0f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -455,7 +464,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.x -= layerWid/2;
 
-		makeArcedPathSection(5, pathWid, -180f, -90f,
+		makeArcedPathSection(numEdgeVerts, pathWid, -180f, -90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -464,7 +473,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(-layerWid/2, 0, layerWid/2);
 
-		makeArcedPathSection(5, pathWid, -90f, 0f,
+		makeArcedPathSection(numEdgeVerts, pathWid, -90f, 0f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -477,7 +486,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.x -= layerWid/2;
 
-		makeArcedPathSection(5, pathWid, 0f, -90f,
+		makeArcedPathSection(numEdgeVerts, pathWid, 0f, -90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -486,7 +495,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(-layerWid/2, 0, -layerWid/2);
 
-		makeArcedPathSection(5, pathWid, -90f, 180f,
+		makeArcedPathSection(numEdgeVerts, pathWid, -90f, 180f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -499,7 +508,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.x += layerWid/2;
 
-		makeArcedPathSection(5, pathWid, 0f, 90f,
+		makeArcedPathSection(numEdgeVerts, pathWid, 0f, 90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -508,7 +517,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(layerWid/2, 0, -layerWid/2);
 
-		makeArcedPathSection(5, pathWid, 90f, 180f,
+		makeArcedPathSection(numEdgeVerts, pathWid, 90f, 180f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -661,7 +670,7 @@ public class ProcPath : MonoBehaviour {
 		for (; lId < lefts.Count; lId++) {
 			// do one chunk 
 			// (between all the points of the lower resolution edge) 
-			Debug.Log("\nlId: " + lId);
+			//Debug.Log("\nlId: " + lId);
 
 			if // it's a simple quad ladder 
 				(lefts.Count == rights.Count) 
