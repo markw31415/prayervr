@@ -108,11 +108,10 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	Vector3 latestDelta;
 	void setupPathGeometry() {
 		// setup a palette of vertices to use later 
 		// (we start at practically the southernmost point, in the center of the x axis, 
-		// starting with outermost elbow, moving counter-clockwise) 
+		// starting with outermost elbow, & moving counter-clockwise) 
 		makeConcentricElbowsFor(Quadrant.SouthEast, new Vector3(inset, 0, -rad)); 
 		makeConcentricElbowsFor(Quadrant.NorthEast, new Vector3(rad, 0, inset));
 		makeConcentricElbowsFor(Quadrant.NorthWest, new Vector3(-inset, 0, rad));
@@ -135,9 +134,9 @@ public class ProcPath : MonoBehaviour {
 			lefts, rights);
 
 		// 1st of the big concentric elbows 
-		var lq = labQuads[(int)Quadrant.SouthWest];
+		var lq = labQuads[(int)Quadrant.SouthWest]; // labyrinth quad 
 		var ri = 4; // ring id/index 
-		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		//makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
 
 		// 2nd small elbow 
 		makeNorthEdgeHairpinFromWestToEast(new Vector3(-rad+layerWid*ri, 0, -inset));
@@ -525,6 +524,7 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
+	Vector3 latestDelta;
 	void makeConcentricElbowsFor(Quadrant q, Vector3 pathStart) {
 		int num = 8; // number of vertices per edge 
 		var currRadDist = rad; // current radial distance (from center of labyrinth) 
