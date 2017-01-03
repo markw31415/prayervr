@@ -27,7 +27,7 @@ using System.Collections.Generic;
 */
 
 public class ProcPath : MonoBehaviour {
-	public Material mat;
+	public Material Mat;
 
 	// private 
 	int numDoublings = 1; // this is for asynchronous edge resolutions, but for now we aren't utilizing it 
@@ -35,6 +35,7 @@ public class ProcPath : MonoBehaviour {
 	int currVert = 0; // current vertex index 
 	int lId = 0; // left index 
 	int rId = 0; // right index 
+	int anchL; // left anchor.  the point of a triangle fan, where you would hold it (if it was a physical hand fan) 
 	static float rad = 100f; // radius of entire labyrinth path 
 	static float inset = 10f; // distance from the 0 point of each axis/dimension  
 	static float goldenRatio = 1.61803398875f;
@@ -79,7 +80,7 @@ public class ProcPath : MonoBehaviour {
 	void Start() {
 		mf = gameObject.AddComponent<MeshFilter>();
 		mr = gameObject.AddComponent<MeshRenderer>();
-		mr.material = mat;
+		mr.material = Mat;
 
 		m = new Mesh();
 		mf.mesh = m;
@@ -99,7 +100,7 @@ public class ProcPath : MonoBehaviour {
 		// ....however it works VERY slowly for this path (which doesn't need any fancy math) 
 
 		var norms = new Vector3[verts.Count];
-		var up = Vector3.up; // this actually takes a little time if not cached 
+		var up = Vector3.up; // this actually takes a very little time if not cached 
 
 		for (int i = 0; i < norms.Length; i++)
 			norms[i] = up;
@@ -112,16 +113,14 @@ public class ProcPath : MonoBehaviour {
 		// setup a palette of vertices to use later 
 		// (we start at practically the southernmost point, in the center of the x axis, 
 		// starting with outermost elbow, & moving counter-clockwise) 
-		makeConcentricElbowsFor(Quadrant.SouthEast, new Vector3(inset, 0, -rad)); 
-		makeConcentricElbowsFor(Quadrant.NorthEast, new Vector3(rad, 0, inset));
-		makeConcentricElbowsFor(Quadrant.NorthWest, new Vector3(-inset, 0, rad));
-		makeConcentricElbowsFor(Quadrant.SouthWest, new Vector3(-rad, 0, -inset));
+		cacheConcentricElbowVertsFor(Quadrant.SouthEast, new Vector3(inset, 0, -rad)); 
+		cacheConcentricElbowVertsFor(Quadrant.NorthEast, new Vector3(rad, 0, inset));
+		cacheConcentricElbowVertsFor(Quadrant.NorthWest, new Vector3(-inset, 0, rad));
+		cacheConcentricElbowVertsFor(Quadrant.SouthWest, new Vector3(-rad, 0, -inset));
 
 		// make 1st 2 verts for the starting entrance archway of the labyrinth 
-		addVertAndUv(new Vector3(-pathWid/2, 0, -rad));
-		addVertAndUv(new Vector3(pathWid/2, 0, -rad));
-		// TODO: make makeArcedPath() connect to the first 2 orphan vertices (if currVertId <= 2) 
-
+		addVertAndUvToGlobalPool(new Vector3(pathWid/2, 0, -rad));
+		addVertAndUvToGlobalPool(new Vector3(-pathWid/2, 0, -rad));
 
 		// 1st small elbow 
 		var currPos = new Vector3(-inset/2, 0, -rad+layerWid*3);
@@ -136,7 +135,7 @@ public class ProcPath : MonoBehaviour {
 		// 1st of the big concentric elbows 
 		var lq = labQuads[(int)Quadrant.SouthWest]; // labyrinth quad 
 		var ri = 4; // ring id/index 
-		//makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
 
 		// 2nd small elbow 
 		makeNorthEdgeHairpinFromWestToEast(new Vector3(-rad+layerWid*ri, 0, -inset));
@@ -146,7 +145,7 @@ public class ProcPath : MonoBehaviour {
 		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
 
 		// 3rd small elbow 
-		makeEastEdgeHairpinFromSouthToNorth(new Vector3(-inset, 0, -rad+layerWid*ri));
+		//makeEastEdgeHairpinFromSouthToNorth(new Vector3(-inset, 0, -rad+layerWid*ri));
 
 		// 3rd BIG elbow 
 		ri = 6;
@@ -155,7 +154,7 @@ public class ProcPath : MonoBehaviour {
 		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ri], lq.Lefts[ri]);
 
 		// 1st quadrant bridge 
-		makeBridgeSectionBetweenQuadrants(0f, new Vector3(-rad+layerWid*ri, 0, -inset), new Vector3(0, 0, inset*2));
+		//makeBridgeSectionBetweenQuadrants(0f, new Vector3(-rad+layerWid*ri, 0, -inset), new Vector3(0, 0, inset*2));
 
 		// 4th BIG elbow 
 		lq = labQuads[(int)Quadrant.NorthWest];
@@ -165,7 +164,7 @@ public class ProcPath : MonoBehaviour {
 		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ri], lq.Lefts[ri]);
 
 		// 2nd quadrant bridge 
-		makeBridgeSectionBetweenQuadrants(90f, new Vector3(-inset, 0, rad-layerWid*ri), new Vector3(inset*2, 0, 0));
+		//makeBridgeSectionBetweenQuadrants(90f, new Vector3(-inset, 0, rad-layerWid*ri), new Vector3(inset*2, 0, 0));
 
 		// 5th BIG elbow 
 		lq = labQuads[(int)Quadrant.NorthEast];
@@ -295,7 +294,7 @@ public class ProcPath : MonoBehaviour {
 		lq = labQuads[(int)Quadrant.SouthEast];
 		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
 
-		// simple elbow (single 90'ish degree arc), which precedes the 2nd of 3 straight sections 
+		// simple elbow (single 90'ish degree arc, forming quarter of a torus), which precedes the 2nd of 3 straight sections 
 		currPos = new Vector3(inset, 0, -rad);
 		var endD = new Vector3(-inset, 0, 7f); // delta from start to end point 
 		makeArcedPathSection(7, pathWid, -90f, 0f, 
@@ -525,7 +524,7 @@ public class ProcPath : MonoBehaviour {
 
 
 	Vector3 latestDelta;
-	void makeConcentricElbowsFor(Quadrant q, Vector3 pathStart) {
+	void cacheConcentricElbowVertsFor(Quadrant q, Vector3 pathStart) {
 		int num = 8; // number of vertices per edge 
 		var currRadDist = rad; // current radial distance (from center of labyrinth) 
 		var lq = labQuads[(int)q]; // labyrinth quadrants 
@@ -571,6 +570,7 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
+	// TODO: connect to the first 2 orphan vertices (if currVertId <= 2) 
 	void makeArcedPathSection(
 		int numVerts,
 		float width,  // ang = euler angle in Y 
@@ -583,7 +583,7 @@ public class ProcPath : MonoBehaviour {
 		List<Vector3> rights,
 		bool addPointsToFinalList = true
 	) {
-		Debug.Log("\n makeArcedPathSection()");
+		//Debug.Log("\n makeArcedPathSection()");
 		var startL = Quaternion.Euler(0, startAng, 0) * (Vector3.left * width/2);
 		var startR = Quaternion.Euler(0, startAng, 0) * (Vector3.right * width/2);
 		startL += startPos;
@@ -614,19 +614,19 @@ public class ProcPath : MonoBehaviour {
 		var end = endPos - pivotAnchor; // end direction 
 
 		for (int i = 0; i < numPoints; i++) {
-			makePoint(pivotAnchor + Vector3.Slerp(beg, end, curr), Color.black, l);
+			makePoint(pivotAnchor + Vector3.Slerp(beg, end, curr), Color.red, l);
 			curr += inc;
 		}
 	}
 
 
 	void makePoint(Vector3 v, Color c, List<Vector3> l) {
-		/*var f = 0.2f;
-		var o = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+		var f = 0.2f;
+		var o = GameObject.CreatePrimitive(PrimitiveType.Cube);
 		o.transform.position = v;
 		o.transform.localScale = new Vector3(f, f, f);
-		o.transform.SetParent(rtt, false);
-		o.GetComponent<Renderer>().material.color = c;*/
+		o.transform.SetParent(transform, false);
+		o.GetComponent<Renderer>().material.color = c;
 		l.Add(v);
 	}
 
@@ -645,9 +645,23 @@ public class ProcPath : MonoBehaviour {
 	void stitchLeftEdgesToRightEdges(int numDoublings, List<Vector3> lefts, List<Vector3> rights) { // ....and fill intermediate lists 
 		lId = 0; // left index 
 		rId = 0; // right index 
+
+		// let's try a different way
+
+
+
+
+
+
+
+
+
+
+		return;
+
 		// make 1st rung (2 points, which are outside of subsequent repeatable patterns) 
-		addVertAndUv(rights[rId++]);
-		addVertAndUv(lefts[lId++]);
+		addVertAndUvToGlobalPool(rights[rId++]);
+		addVertAndUvToGlobalPool(lefts[lId++]);
 
 
 		// LRL/LLR: refers to the sequence of lefts and rights
@@ -672,23 +686,32 @@ public class ProcPath : MonoBehaviour {
 			// (between all the points of the lower resolution edge) 
 			//Debug.Log("\nlId: " + lId);
 
-			if // it's a simple quad ladder 
-				(lefts.Count == rights.Count) 
-			{
+			if (lefts.Count == rights.Count) {
+				//Debug.Log("\n the stitch is a simple quad ladder");
 				makeOneRLRTriangle(rights);
-				makeLLRTriangle(lefts);
-			}else{ // it has more verts on the right, requiring 3 or more tris per chunk 
+				makeOneLLRTriangle(lefts);
+			}else{ 
+				Debug.Log("\n it has more verts on the right, requiring 3 or more tris per chunk");
 				//while (rId <= rights.Count/2) {
 					makeRLRTriangleFan(2);
-					makeAnAFTERFANLLRTriangle(); // exact middle tri (of a rung to rung chunk) pointing outwards 
+					makeOneLLRTriangleAfterFan(); // exact middle tri (of a rung to rung chunk) pointing STRAIGHT outwards 
 				//}
 			}
 		}
 	}
 
 
+	void makeOneLLRTriangleAfterFan() {
+		addVertAndUvToGlobalPool(lefts[lId]);
+
+		triIndices.Add(anchL);
+		triIndices.Add(currVert - 1);
+		triIndices.Add(currVert - 2);
+	}
+
+
 	void makeOneRLRTriangle(List<Vector3> rights) {
-		addVertAndUv(rights[rId++]);
+		addVertAndUvToGlobalPool(rights[rId++]);
 
 		triIndices.Add(currVert - 3);
 		triIndices.Add(currVert - 2);
@@ -696,11 +719,10 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	int anchL; // left anchor.  the point of a triangle fan, where you would hold it (if it was a physical hand fan) 
 	void makeRLRTriangleFan(int numTris) {
 		// notes:
 		// the left tri remains the same
-		// always use the latest 2 right tris
+		// always use the latest 2 right tris (with same anchor point in the middle, as we travel down path) 
 
 		// diff indices from makeOneRLRTriangle, because we're before the rId++ here 
 		int prevR = currVert - 2;
@@ -708,7 +730,7 @@ public class ProcPath : MonoBehaviour {
 		int currR = currVert;
 
 		for (int i = 0; i < numTris; i++) {
-			addVertAndUv(rights[rId++]);
+			addVertAndUvToGlobalPool(rights[rId++]);
 
 			if (i == 0) {
 				prevR = currVert - 3;
@@ -725,17 +747,8 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	void makeAnAFTERFANLLRTriangle() {
-		addVertAndUv(lefts[lId]);
-
-		triIndices.Add(anchL);
-		triIndices.Add(currVert - 1);
-		triIndices.Add(currVert - 2);
-	}
-
-
-	void makeLLRTriangle(List<Vector3> lefts) {
-		addVertAndUv(lefts[lId]);
+	void makeOneLLRTriangle(List<Vector3> lefts) {
+		addVertAndUvToGlobalPool(lefts[lId]);
 
 		triIndices.Add(currVert - 3);
 		triIndices.Add(currVert - 1);
@@ -743,7 +756,7 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	void addVertAndUv(Vector3 v) {
+	void addVertAndUvToGlobalPool(Vector3 v) {
 		verts.Add(v);
 		uvs.Add(new Vector2(v.x/4, v.z/4));
 		currVert++;
