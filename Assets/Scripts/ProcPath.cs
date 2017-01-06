@@ -17,7 +17,7 @@ using System.Collections.Generic;
  * easier than automating proper placing of existing "square" (right angled) rectangular/box models at appropriate
  * intervals?)
  * 
- * & if we do (2), maybe the outside edges could have lower edge/side resolution, and it could be easy to do it
+ * & if we do (2), maybe the outside edges could have lower-edge/side resolution, and it could be easy to do it
  * at twice the resolution of the inside edge of the path?
  * 
  * 1st, we could use the chunk (a repeating piece/pattern of the path section) dividing lines because they
@@ -30,7 +30,7 @@ public class ProcPath : MonoBehaviour {
 	public Material Mat;
 
 	// private 
-	int numDoublings = 1; // this is for asynchronous edge resolutions, but for now we aren't utilizing it 
+	int numSub = 1; // number of subdivisions for the higher resolution side/edge of path 
 	int numEdgeVerts = 5; // ....for each half of a hairpin 
 	int currVert = 0; // current vertex index 
 	int lId = 0; // left index 
@@ -142,7 +142,7 @@ public class ProcPath : MonoBehaviour {
 
 		// 2nd BIG elbow 
 		ri = 5;
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
 
 		// 3rd small elbow 
 		//makeEastEdgeHairpinFromSouthToNorth(new Vector3(-inset, 0, -rad+layerWid*ri));
@@ -151,7 +151,7 @@ public class ProcPath : MonoBehaviour {
 		ri = 6;
 		lq.Rights[ri].Reverse();
 		lq.Lefts[ri].Reverse();
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ri], lq.Lefts[ri]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Rights[ri], lq.Lefts[ri]);
 
 		// 1st quadrant bridge 
 		//makeBridgeSectionBetweenQuadrants(0f, new Vector3(-rad+layerWid*ri, 0, -inset), new Vector3(0, 0, inset*2));
@@ -161,7 +161,7 @@ public class ProcPath : MonoBehaviour {
 		//ri = 6;
 		lq.Rights[ri].Reverse();
 		lq.Lefts[ri].Reverse();
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ri], lq.Lefts[ri]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Rights[ri], lq.Lefts[ri]);
 
 		// 2nd quadrant bridge 
 		//makeBridgeSectionBetweenQuadrants(90f, new Vector3(-inset, 0, rad-layerWid*ri), new Vector3(inset*2, 0, 0));
@@ -171,7 +171,7 @@ public class ProcPath : MonoBehaviour {
 		//ri = 6;
 		lq.Rights[ri].Reverse();
 		lq.Lefts[ri].Reverse();
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ri], lq.Lefts[ri]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Rights[ri], lq.Lefts[ri]);
 
 		// 6th small elbow 
 		//ri = 6;
@@ -197,7 +197,7 @@ public class ProcPath : MonoBehaviour {
 
 		// 6th BIG elbow 
 		ri = 5;
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
 
 		// 3rd quadrant bridge 
 		makeBridgeSectionBetweenQuadrants(-90f, new Vector3(inset, 0, rad-layerWid*ri), new Vector3(-inset*2, 0, 0));
@@ -205,7 +205,7 @@ public class ProcPath : MonoBehaviour {
 		// innermost NW big elbow
 		//ri = 5;
 		lq = labQuads[(int)Quadrant.NorthWest];
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
 
 		makeSouthEdgeHairpinFromEastToWest(new Vector3(-rad+layerWid*ri, 0, inset));
 
@@ -213,20 +213,20 @@ public class ProcPath : MonoBehaviour {
 		ri = 4;
 		lq.Rights[ri].Reverse();
 		lq.Lefts[ri].Reverse();
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ri], lq.Lefts[ri]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Rights[ri], lq.Lefts[ri]);
 
 		makeEastEdgeHairpinFromSouthToNorth(new Vector3(-inset, 0, rad-layerWid*ri));
 
 		// BIG elbow (4th from center)
 		ri = 3;
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
 
 		makeBridgeSectionBetweenQuadrants(-180f, new Vector3(-rad+layerWid*ri, 0, inset), new Vector3(0, 0, -inset*2));
 
 		// BIG elbow (4th from center)
 		lq = labQuads[(int)Quadrant.SouthWest];
 		//ri = 3;
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
 
 		makeEastEdgeHairpinFromNorthToSouth(new Vector3(-inset-layerWid/2, 0, -rad+layerWid*ri));
 
@@ -235,7 +235,7 @@ public class ProcPath : MonoBehaviour {
 		makeNorthEdgeHairpinFromEastToWest(new Vector3(-rad+layerWid*ri, 0, -inset));
 
 		ri = 1;
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
 		makeEastEdgeHairpinFromNorthToSouth(new Vector3(-inset-layerWid/2, 0, -rad+layerWid));
 
 		ri = 0;
@@ -260,7 +260,7 @@ public class ProcPath : MonoBehaviour {
 		makeSouthEdgeHairpinFromEastToWest(new Vector3(rad-layerWid*ri, 0, inset));
 
 		ri = 3;
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
 		makeWestEdgeHairpinFromNorthToSouth(new Vector3(inset, 0, rad-layerWid*ri));
 
 		ri = 4;
@@ -272,7 +272,7 @@ public class ProcPath : MonoBehaviour {
 		makeWestEdgeHairpinFromNorthToSouth(new Vector3(inset, 0, -rad+layerWid*ri));
 
 		ri = 3;
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
 		makeNorthEdgeHairpinFromWestToEast(new Vector3(rad-layerWid*ri, 0, -inset));
 
 		ri = 2;
@@ -280,11 +280,11 @@ public class ProcPath : MonoBehaviour {
 		makeWestEdgeHairpinFromNorthToSouth(new Vector3(inset, 0, -rad+layerWid*ri));
 
 		ri = 1;
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
 		makeBridgeSectionBetweenQuadrants(0f, new Vector3(rad-layerWid*ri, 0, -inset), new Vector3(0, 0, inset*2));
 
 		lq = labQuads[(int)Quadrant.NorthEast];
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
 		makeWestEdgeHairpinFromSouthToNorth(new Vector3(inset, 0, rad-layerWid*ri));
 
 		ri = 0;
@@ -315,7 +315,7 @@ public class ProcPath : MonoBehaviour {
 			lefts, rights);
 		endD += currPos;
 
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Lefts[ri], lq.Rights[ri]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
 		makeNorthEdgeHairpinFromEastToWest(new Vector3(rad-layerWid*ri, 0, -inset));
 
 		ri = 6;
@@ -334,7 +334,7 @@ public class ProcPath : MonoBehaviour {
 	void makeBigElbowWithEdgesSwappedAndBackwards(LabyrinthQuadrant lq, int ringId) {
 		lq.Rights[ringId].Reverse();
 		lq.Lefts[ringId].Reverse();
-		stitchLeftEdgesToRightEdges(numDoublings, lq.Rights[ringId], lq.Lefts[ringId]);
+		stitchLeftEdgesToRightEdges(numSub, lq.Rights[ringId], lq.Lefts[ringId]);
 	}
 
 
@@ -602,7 +602,7 @@ public class ProcPath : MonoBehaviour {
 		makeArc(rights,	startR, endR, pivotAnchor, numVerts);
 
 		if (addPointsToFinalList)
-			stitchLeftEdgesToRightEdges(numDoublings, lefts, rights);
+			stitchLeftEdgesToRightEdges(numSub, lefts, rights);
 	}
 
 
