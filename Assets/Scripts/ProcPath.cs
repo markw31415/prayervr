@@ -30,17 +30,14 @@ public class ProcPath : MonoBehaviour {
 	public Material Mat;
 
 	// private 
-	int numSub = 1; // number of subdivisions for the higher resolution side/edge of path 
 	int numEdgeVerts = 5; // ....for each half of a hairpin 
-	int currVert = 0; // current vertex index 
 	int lId = 0; // left index 
 	int rId = 0; // right index 
-	int anchL; // left anchor.  the point of a triangle fan, where you would hold it (if it was a physical hand fan) 
 	static float rad = 100f; // radius of entire labyrinth path 
 	static float inset = 10f; // distance from the 0 point of each axis/dimension  
 	static float goldenRatio = 1.61803398875f;
-	static float smallerPercentage = 1f / (goldenRatio + 1f);
-	static float biggerPercentage = 1f - smallerPercentage;
+	static float smallerFrac = 1f / (goldenRatio + 1f); // fraction 
+	static float biggerFrac = 1f - smallerFrac; //         ^ 
 	// widths 
 	static float layerWid = rad * 0.75f / 7; // repeatable ring layers of the labyrinth, imagining it as an onion. 
 	// starting from the outside edge of entire labyrinth, each layer has these zones:
@@ -48,9 +45,9 @@ public class ProcPath : MonoBehaviour {
 	//		(2) outer hedge
 	//		(3) path
 	//		(4) inner hedge
-	float hedgeWid = smallerPercentage * layerWid / 2;
-	float pathWid = biggerPercentage * layerWid / 2; // for now, the path & the dotted grass rings will share the same width
-	List <LabyrinthQuadrant> labQuads = new List<LabyrinthQuadrant>() { 
+	float hedgeWid = smallerFrac * layerWid / 2;
+	float pathWid = biggerFrac * layerWid / 2; // for now, the path & the tree/prop-dotted grass spaces between the concentric elbows, will share the same width 
+	List <LabyrinthQuadrant> pathQs = new List<LabyrinthQuadrant>() { // path quadrants (huge, concentric-elbows) 
 		new LabyrinthQuadrant(), 
 		new LabyrinthQuadrant(), 
 		new LabyrinthQuadrant(), 
@@ -61,8 +58,8 @@ public class ProcPath : MonoBehaviour {
 	MeshFilter mf;
 	MeshRenderer mr;
 
-	// for building the edge lines  
-	List<Vector3> lefts = new List<Vector3>();
+    // for building seperate L/R edges individually for sections of the path (usually elbow arcs). 
+    List<Vector3> lefts = new List<Vector3>();
 	List<Vector3> rights = new List<Vector3>();
 
 	// final form to put into mesh object
@@ -85,10 +82,11 @@ public class ProcPath : MonoBehaviour {
 		m = new Mesh();
 		mf.mesh = m;
 
-		setupPathGeometry();
+        makeVertexEdgesForEntirePath();
+        makeTrisForEntirePath();
 
-		// build final mesh
-		m.vertices = verts.ToArray();
+        // build final mesh
+        m.vertices = verts.ToArray();
 		m.uv = uvs.ToArray();
 		m.triangles = triIndices.ToArray();
 		setAllNormalsPointingUp();
@@ -109,7 +107,7 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	void setupPathGeometry() {
+	void makeVertexEdgesForEntirePath() {
 		// setup a palette of vertices to use later 
 		// (we start at practically the southernmost point, in the center of the x axis, 
 		// starting with outermost elbow, & moving counter-clockwise) 
@@ -118,12 +116,12 @@ public class ProcPath : MonoBehaviour {
 		cacheConcentricElbowVertsFor(Quadrant.NorthWest, new Vector3(-inset, 0, rad));
 		cacheConcentricElbowVertsFor(Quadrant.SouthWest, new Vector3(-rad, 0, -inset));
 
-		// make 1st 2 verts for the starting entrance archway of the labyrinth 
-		addVertAndUvToGlobalPool(new Vector3(pathWid/2, 0, -rad));
-		addVertAndUvToGlobalPool(new Vector3(-pathWid/2, 0, -rad));
+        // make 1st 2 verts for the starting entrance archway of the labyrinth 
+        addVertAndUvToFinalList(new Vector3(-pathWid / 2, 0, -rad));
+        addVertAndUvToFinalList(new Vector3( pathWid / 2, 0, -rad));
 
-		// 1st small elbow 
-		var currPos = new Vector3(-inset/2, 0, -rad+layerWid*3);
+        // 1st small elbow 
+        var currPos = new Vector3(-inset/2, 0, -rad+layerWid*3);
 		var endDelta = new Vector3(-inset/2, 0, layerWid);
 		var pivotAnch = currPos + new Vector3(-layerWid, 0, 0);
 		makeArcedPathSection(5, pathWid, 0f, -90f,
@@ -132,46 +130,46 @@ public class ProcPath : MonoBehaviour {
 			pivotAnch,
 			lefts, rights);
 
-		// 1st of the big concentric elbows 
-		var lq = labQuads[(int)Quadrant.SouthWest]; // labyrinth quad 
+        // 1st of the big concentric elbows 
+        var pq = pathQs[(int)Quadrant.SouthWest]; // path quadrant 
 		var ri = 4; // ring id/index 
-		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 
-		// 2nd small elbow 
-		makeNorthEdgeHairpinFromWestToEast(new Vector3(-rad+layerWid*ri, 0, -inset));
+        // 2nd small elbow 
+        makeNorthEdgeHairpinFromWestToEast(new Vector3(-rad+layerWid*ri, 0, -inset));
 
-		// 2nd BIG elbow 
-		ri = 5;
-		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
+        // 2nd BIG elbow 
+        ri = 5;
+		addSection(pq.Lefts[ri], pq.Rights[ri]);
 
 		// 3rd small elbow 
 		//makeEastEdgeHairpinFromSouthToNorth(new Vector3(-inset, 0, -rad+layerWid*ri));
 
 		// 3rd BIG elbow 
 		ri = 6;
-		lq.Rights[ri].Reverse();
-		lq.Lefts[ri].Reverse();
-		stitchLeftEdgesToRightEdges(numSub, lq.Rights[ri], lq.Lefts[ri]);
+		pq.Rights[ri].Reverse();
+		pq.Lefts[ri].Reverse();
+		addSection(pq.Rights[ri], pq.Lefts[ri]);
 
 		// 1st quadrant bridge 
 		//makeBridgeSectionBetweenQuadrants(0f, new Vector3(-rad+layerWid*ri, 0, -inset), new Vector3(0, 0, inset*2));
 
 		// 4th BIG elbow 
-		lq = labQuads[(int)Quadrant.NorthWest];
+		pq = pathQs[(int)Quadrant.NorthWest];
 		//ri = 6;
-		lq.Rights[ri].Reverse();
-		lq.Lefts[ri].Reverse();
-		stitchLeftEdgesToRightEdges(numSub, lq.Rights[ri], lq.Lefts[ri]);
+		pq.Rights[ri].Reverse();
+		pq.Lefts[ri].Reverse();
+		addSection(pq.Rights[ri], pq.Lefts[ri]);
 
 		// 2nd quadrant bridge 
 		//makeBridgeSectionBetweenQuadrants(90f, new Vector3(-inset, 0, rad-layerWid*ri), new Vector3(inset*2, 0, 0));
 
 		// 5th BIG elbow 
-		lq = labQuads[(int)Quadrant.NorthEast];
+		pq = pathQs[(int)Quadrant.NorthEast];
 		//ri = 6;
-		lq.Rights[ri].Reverse();
-		lq.Lefts[ri].Reverse();
-		stitchLeftEdgesToRightEdges(numSub, lq.Rights[ri], lq.Lefts[ri]);
+		pq.Rights[ri].Reverse();
+		pq.Lefts[ri].Reverse();
+		addSection(pq.Rights[ri], pq.Lefts[ri]);
 
 		// 6th small elbow 
 		//ri = 6;
@@ -197,102 +195,102 @@ public class ProcPath : MonoBehaviour {
 
 		// 6th BIG elbow 
 		ri = 5;
-		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
+		addSection(pq.Lefts[ri], pq.Rights[ri]);
 
 		// 3rd quadrant bridge 
 		makeBridgeSectionBetweenQuadrants(-90f, new Vector3(inset, 0, rad-layerWid*ri), new Vector3(-inset*2, 0, 0));
 
 		// innermost NW big elbow
 		//ri = 5;
-		lq = labQuads[(int)Quadrant.NorthWest];
-		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
+		pq = pathQs[(int)Quadrant.NorthWest];
+		addSection(pq.Lefts[ri], pq.Rights[ri]);
 
 		makeSouthEdgeHairpinFromEastToWest(new Vector3(-rad+layerWid*ri, 0, inset));
 
 		// BIG elbow (3rd from center) 
 		ri = 4;
-		lq.Rights[ri].Reverse();
-		lq.Lefts[ri].Reverse();
-		stitchLeftEdgesToRightEdges(numSub, lq.Rights[ri], lq.Lefts[ri]);
+		pq.Rights[ri].Reverse();
+		pq.Lefts[ri].Reverse();
+		addSection(pq.Rights[ri], pq.Lefts[ri]);
 
 		makeEastEdgeHairpinFromSouthToNorth(new Vector3(-inset, 0, rad-layerWid*ri));
 
 		// BIG elbow (4th from center)
 		ri = 3;
-		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
+		addSection(pq.Lefts[ri], pq.Rights[ri]);
 
 		makeBridgeSectionBetweenQuadrants(-180f, new Vector3(-rad+layerWid*ri, 0, inset), new Vector3(0, 0, -inset*2));
 
 		// BIG elbow (4th from center)
-		lq = labQuads[(int)Quadrant.SouthWest];
+		pq = pathQs[(int)Quadrant.SouthWest];
 		//ri = 3;
-		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
+		addSection(pq.Lefts[ri], pq.Rights[ri]);
 
 		makeEastEdgeHairpinFromNorthToSouth(new Vector3(-inset-layerWid/2, 0, -rad+layerWid*ri));
 
 		ri = 2;
-		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 		makeNorthEdgeHairpinFromEastToWest(new Vector3(-rad+layerWid*ri, 0, -inset));
 
 		ri = 1;
-		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
+		addSection(pq.Lefts[ri], pq.Rights[ri]);
 		makeEastEdgeHairpinFromNorthToSouth(new Vector3(-inset-layerWid/2, 0, -rad+layerWid));
 
 		ri = 0;
-		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 
 		makeBridgeSectionBetweenQuadrants(0f, new Vector3(-rad+layerWid*ri, 0, -inset), new Vector3(0, 0, inset*2));
 
-		lq = labQuads[(int)Quadrant.NorthWest];
-		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		pq = pathQs[(int)Quadrant.NorthWest];
+		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 		makeEastEdgeHairpinFromNorthToSouth(new Vector3(-inset, 0, rad));
 
 		ri = 1;
-		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 		makeSouthEdgeHairpinFromWestToEast(new Vector3(-rad+layerWid*ri, 0, inset));
 
 		ri = 2;
-		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 		makeBridgeSectionBetweenQuadrants(90f, new Vector3(-inset, 0, rad-layerWid*ri), new Vector3(inset*2, 0, 0));
 
-		lq = labQuads[(int)Quadrant.NorthEast];
-		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		pq = pathQs[(int)Quadrant.NorthEast];
+		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 		makeSouthEdgeHairpinFromEastToWest(new Vector3(rad-layerWid*ri, 0, inset));
 
 		ri = 3;
-		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
+		addSection(pq.Lefts[ri], pq.Rights[ri]);
 		makeWestEdgeHairpinFromNorthToSouth(new Vector3(inset, 0, rad-layerWid*ri));
 
 		ri = 4;
-		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 		makeBridgeSectionBetweenQuadrants(180f, new Vector3(rad-layerWid*ri, 0, inset), new Vector3(0, 0, -inset*2));
 
-		lq = labQuads[(int)Quadrant.SouthEast];
-		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		pq = pathQs[(int)Quadrant.SouthEast];
+		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 		makeWestEdgeHairpinFromNorthToSouth(new Vector3(inset, 0, -rad+layerWid*ri));
 
 		ri = 3;
-		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
+		addSection(pq.Lefts[ri], pq.Rights[ri]);
 		makeNorthEdgeHairpinFromWestToEast(new Vector3(rad-layerWid*ri, 0, -inset));
 
 		ri = 2;
-		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 		makeWestEdgeHairpinFromNorthToSouth(new Vector3(inset, 0, -rad+layerWid*ri));
 
 		ri = 1;
-		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
+		addSection(pq.Lefts[ri], pq.Rights[ri]);
 		makeBridgeSectionBetweenQuadrants(0f, new Vector3(rad-layerWid*ri, 0, -inset), new Vector3(0, 0, inset*2));
 
-		lq = labQuads[(int)Quadrant.NorthEast];
-		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
+		pq = pathQs[(int)Quadrant.NorthEast];
+		addSection(pq.Lefts[ri], pq.Rights[ri]);
 		makeWestEdgeHairpinFromSouthToNorth(new Vector3(inset, 0, rad-layerWid*ri));
 
 		ri = 0;
-		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 		makeBridgeSectionBetweenQuadrants(180f, new Vector3(rad-layerWid*ri, 0, inset), new Vector3(0, 0, -inset*2));
 
-		lq = labQuads[(int)Quadrant.SouthEast];
-		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		pq = pathQs[(int)Quadrant.SouthEast];
+		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 
 		// simple elbow (single 90'ish degree arc, forming quarter of a torus), which precedes the 2nd of 3 straight sections 
 		currPos = new Vector3(inset, 0, -rad);
@@ -315,11 +313,11 @@ public class ProcPath : MonoBehaviour {
 			lefts, rights);
 		endD += currPos;
 
-		stitchLeftEdgesToRightEdges(numSub, lq.Lefts[ri], lq.Rights[ri]);
+		addSection(pq.Lefts[ri], pq.Rights[ri]);
 		makeNorthEdgeHairpinFromEastToWest(new Vector3(rad-layerWid*ri, 0, -inset));
 
 		ri = 6;
-		makeBigElbowWithEdgesSwappedAndBackwards(lq, ri);
+		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 
 		// last simple elbow going into center of labyrinth 
 		currPos = new Vector3(inset, 0, -rad+6*layerWid);
@@ -334,7 +332,7 @@ public class ProcPath : MonoBehaviour {
 	void makeBigElbowWithEdgesSwappedAndBackwards(LabyrinthQuadrant lq, int ringId) {
 		lq.Rights[ringId].Reverse();
 		lq.Lefts[ringId].Reverse();
-		stitchLeftEdgesToRightEdges(numSub, lq.Rights[ringId], lq.Lefts[ringId]);
+		addSection(lq.Rights[ringId], lq.Lefts[ringId]);
 	}
 
 
@@ -527,13 +525,13 @@ public class ProcPath : MonoBehaviour {
 	void cacheConcentricElbowVertsFor(Quadrant q, Vector3 pathStart) {
 		int num = 8; // number of vertices per edge 
 		var currRadDist = rad; // current radial distance (from center of labyrinth) 
-		var lq = labQuads[(int)q]; // labyrinth quadrants 
+		var pq = pathQs[(int)q]; // path quadrant 
 
 		switch (q) {
 			case Quadrant.SouthEast:
 				for (int i = 0; i < 7; i++) {
 					latestDelta = new Vector3(currRadDist-inset, 0, currRadDist-inset);
-					makeArcedPathSection(num, pathWid, 90f, 0f, pathStart, latestDelta, Vector3.zero, lq.Lefts[i], lq.Rights[i], false);
+					makeArcedPathSection(num, pathWid, 90f, 0f, pathStart, latestDelta, Vector3.zero, pq.Lefts[i], pq.Rights[i], false);
 					pathStart.z += layerWid;
 					currRadDist -= layerWid;
 				}
@@ -541,7 +539,7 @@ public class ProcPath : MonoBehaviour {
 			case Quadrant.NorthEast:
 				for (int i = 0; i < 7; i++) {
 					latestDelta = new Vector3(-currRadDist+inset, 0, currRadDist-inset);
-					makeArcedPathSection(num, pathWid, 0f, -90f, pathStart, latestDelta, Vector3.zero, lq.Lefts[i], lq.Rights[i], false);
+					makeArcedPathSection(num, pathWid, 0f, -90f, pathStart, latestDelta, Vector3.zero, pq.Lefts[i], pq.Rights[i], false);
 					pathStart.x -= layerWid;
 					currRadDist -= layerWid;
 				}
@@ -549,7 +547,7 @@ public class ProcPath : MonoBehaviour {
 			case Quadrant.NorthWest:
 				for (int i = 0; i < 7; i++) {
 					latestDelta = new Vector3(-currRadDist+inset, 0, -currRadDist+inset);
-					makeArcedPathSection(num, pathWid, -90f, -180f, pathStart, latestDelta, Vector3.zero, lq.Lefts[i], lq.Rights[i], false);
+					makeArcedPathSection(num, pathWid, -90f, -180f, pathStart, latestDelta, Vector3.zero, pq.Lefts[i], pq.Rights[i], false);
 					pathStart.z -= layerWid;
 					currRadDist -= layerWid;
 				}
@@ -561,7 +559,7 @@ public class ProcPath : MonoBehaviour {
 					else
 						latestDelta = new Vector3(currRadDist-inset, /********/ 0, -currRadDist+inset);
 
-					makeArcedPathSection(num, pathWid, -180f, -270f, pathStart, latestDelta, Vector3.zero, lq.Lefts[i], lq.Rights[i], false);
+					makeArcedPathSection(num, pathWid, -180f, -270f, pathStart, latestDelta, Vector3.zero, pq.Lefts[i], pq.Rights[i], false);
 					pathStart.x += layerWid;
 					currRadDist -= layerWid;
 				}
@@ -570,7 +568,6 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	// TODO: connect to the first 2 orphan vertices (if currVertId <= 2) 
 	void makeArcedPathSection(
 		int numVerts,
 		float width,  // ang = euler angle in Y 
@@ -594,15 +591,14 @@ public class ProcPath : MonoBehaviour {
 		var endR = Quaternion.Euler(0, endAng, 0) * (Vector3.right * width/2);
 		endL += (startPos + endDelta);
 		endR += (startPos + endDelta);
-		//Debug.Log("endL: " + endL);
-		//Debug.Log("endR: " + endR);
+        //Debug.Log("endL: " + endL);
+        //Debug.Log("endR: " + endR);
 
-		makeArc(lefts, startL, endL, pivotAnchor, numVerts);
-		//numVerts = getNumVertsForThisManyEdgeDoublings(numDoublings, numVerts);
+        makeArc(lefts, startL, endL, pivotAnchor, numVerts);
 		makeArc(rights,	startR, endR, pivotAnchor, numVerts);
 
 		if (addPointsToFinalList)
-			stitchLeftEdgesToRightEdges(numSub, lefts, rights);
+			addSection(lefts, rights);
 	}
 
 
@@ -631,134 +627,34 @@ public class ProcPath : MonoBehaviour {
 	}
 
 
-	// an "edge" here is a straight segment (or side, if we were talking about closed polygons) between 2 vertices. 
-	// to make things simple, every edge resolution increase will double the number of edges 
-	int getNumVertsForThisManyEdgeDoublings(int numDoublings, int numVerts) {
-		for (int i = 0; i < numDoublings; i++) {
-			numVerts += (numVerts - 1);
-		}
+    void addSection(List<Vector3> lefts, List<Vector3> rights) {
+        // iterate L/R pairs 
+        for (int i = 0; i < lefts.Count; i++) {
+            addVertAndUvToFinalList(lefts[i]);
+            addVertAndUvToFinalList(rights[i]);
+        }
 
-		return numVerts;
-	}
-
-
-	void stitchLeftEdgesToRightEdges(int numDoublings, List<Vector3> lefts, List<Vector3> rights) { // ....and fill intermediate lists 
-		lId = 0; // left index 
-		rId = 0; // right index 
-
-		// let's try a different way
+        lefts.Clear();
+        rights.Clear();
+    }
 
 
+    void makeTrisForEntirePath() {
+        // triangulate a quad ladder, where every chunk of 4 vertices makes 2 tris (3 + 3 indices) 
+        for (int i = 0; i < verts.Count-3; i+=2) {
+            triIndices.Add(i + 0);
+            triIndices.Add(i + 2);
+            triIndices.Add(i + 3);
+
+            triIndices.Add(i + 0);
+            triIndices.Add(i + 3);
+            triIndices.Add(i + 1);
+        }
+    }
 
 
-
-
-
-
-
-
-		return;
-
-		// make 1st rung (2 points, which are outside of subsequent repeatable patterns) 
-		addVertAndUvToGlobalPool(rights[rId++]);
-		addVertAndUvToGlobalPool(lefts[lId++]);
-
-
-		// LRL/LLR: refers to the sequence of lefts and rights
-		//
-		// a "ladder" here, refers to the edges, and the "straight out" lines
-		// (from the center of the circle we're taking a segment from) are rungs.  which are formed
-		// by matching points.  if both sides have the same number of points, then we have a simple
-		// quad ladder, with each (rung to rung) chunk being 2 triangles.
-		// with 1 edge doubled (in number of straight lines), each chunk will be 3 triangles.  
-
-		// the middle triangle
-		// (a LRL) will ALWAYS have the same shape, no matter how many extra resolution doublings 
-		// occur.  the 2 remaining triangular areas can be made into fans, where the extra doublings
-		// make the round edge (opposite of the sharp point) more and more round as more points are added.
-
-		// "rungs" here, refers to the "straight out" (radially from the centerpoint arc is plotted from)
-		// lines, one for each inside edge point 
-		// a rung-to-rung run is a repeatable chunk pattern of the section we are building
-
-		for (; lId < lefts.Count; lId++) {
-			// do one chunk 
-			// (between all the points of the lower resolution edge) 
-			//Debug.Log("\nlId: " + lId);
-
-			if (lefts.Count == rights.Count) {
-				//Debug.Log("\n the stitch is a simple quad ladder");
-				makeOneRLRTriangle(rights);
-				makeOneLLRTriangle(lefts);
-			}else{ 
-				Debug.Log("\n it has more verts on the right, requiring 3 or more tris per chunk");
-				//while (rId <= rights.Count/2) {
-					makeRLRTriangleFan(2);
-					makeOneLLRTriangleAfterFan(); // exact middle tri (of a rung to rung chunk) pointing STRAIGHT outwards 
-				//}
-			}
-		}
-	}
-
-
-	void makeOneLLRTriangleAfterFan() {
-		addVertAndUvToGlobalPool(lefts[lId]);
-
-		triIndices.Add(anchL);
-		triIndices.Add(currVert - 1);
-		triIndices.Add(currVert - 2);
-	}
-
-
-	void makeOneRLRTriangle(List<Vector3> rights) {
-		addVertAndUvToGlobalPool(rights[rId++]);
-
-		triIndices.Add(currVert - 3);
-		triIndices.Add(currVert - 2);
-		triIndices.Add(currVert - 1);
-	}
-
-
-	void makeRLRTriangleFan(int numTris) {
-		// notes:
-		// the left tri remains the same
-		// always use the latest 2 right tris (with same anchor point in the middle, as we travel down path) 
-
-		// diff indices from makeOneRLRTriangle, because we're before the rId++ here 
-		int prevR = currVert - 2;
-		anchL = currVert - 1;
-		int currR = currVert;
-
-		for (int i = 0; i < numTris; i++) {
-			addVertAndUvToGlobalPool(rights[rId++]);
-
-			if (i == 0) {
-				prevR = currVert - 3;
-			}else{
-				prevR = currR;
-			}
-
-			currR = currVert - 1;
-
-			triIndices.Add(prevR);
-			triIndices.Add(anchL);
-			triIndices.Add(currR);
-		}
-	}
-
-
-	void makeOneLLRTriangle(List<Vector3> lefts) {
-		addVertAndUvToGlobalPool(lefts[lId]);
-
-		triIndices.Add(currVert - 3);
-		triIndices.Add(currVert - 1);
-		triIndices.Add(currVert - 2);
-	}
-
-
-	void addVertAndUvToGlobalPool(Vector3 v) {
+    void addVertAndUvToFinalList(Vector3 v) {
 		verts.Add(v);
 		uvs.Add(new Vector2(v.x/4, v.z/4));
-		currVert++;
 	}
 }
