@@ -300,7 +300,7 @@ public class ProcPath : MonoBehaviour {
 		// small elbow (single 90'ish degree arc), which precedes the 2nd of 3 straight sections 
 		currPos = new Vector3(inset, 0, -rad);
 		var endD = new Vector3(-inset, 0, 7f); // delta from start to end point 
-		makeArcedPathSection(/*7*/ numEdgeVertsInHalfOfHairpin, pathWid, -90f, 0f, 
+		makeArcedPathSection(numSmallElbowEdgeVerts, pathWid, -90f, 0f, 
 			currPos, 
 			endD, 
 			currPos + new Vector3(0, 0, 6),
@@ -311,7 +311,7 @@ public class ProcPath : MonoBehaviour {
 		var z = -rad+layerWid*ri;
 		currPos = new Vector3(0, 0, z-9f);
 		endD = new Vector3(inset, 0, 9f);
-		makeArcedPathSection(/*7*/ numEdgeVertsInHalfOfHairpin, pathWid, 0f, 90f, 
+		makeArcedPathSection(numSmallElbowEdgeVerts, pathWid, 0f, 90f, 
 			currPos, 
 			endD, 
 			currPos + new Vector3(inset, 0, 0),
@@ -326,7 +326,7 @@ public class ProcPath : MonoBehaviour {
 
 		// last simple elbow going into center of labyrinth 
 		currPos = new Vector3(inset, 0, -rad+6*layerWid);
-		makeArcedPathSection(/*7*/ numEdgeVertsInHalfOfHairpin, pathWid, -90f, 0f, 
+		makeArcedPathSection(numSmallElbowEdgeVerts, pathWid, -90f, 0f, 
 			currPos, 
 			new Vector3(-inset, 0, 7f), 
 			currPos + new Vector3(0, 0, 6),
