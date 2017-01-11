@@ -29,9 +29,11 @@ using System.Collections.Generic;
 public class ProcPath : MonoBehaviour {
 	public Material Mat;
 
-	// private 
-	int numEdgeVerts = 5; // ....for each half of a hairpin 
-	int lId = 0; // left index 
+    // private 
+    const int numEdgeVertsInHalfOfHairpin = 5; // ....(each half of a hairpin arc, which needs 2 elbows, otherwise you can get 3/4 of a torus) 
+    const int numSmallElbowEdgeVerts = 8;
+    const int numBigElbowEdgeVerts = 18;
+    int lId = 0; // left index 
 	int rId = 0; // right index 
 	static float rad = 100f; // radius of entire labyrinth path 
 	static float inset = 10f; // distance from the 0 point of each axis/dimension  
@@ -39,14 +41,14 @@ public class ProcPath : MonoBehaviour {
 	static float smallerFrac = 1f / (goldenRatio + 1f); // fraction 
 	static float biggerFrac = 1f - smallerFrac; //         ^ 
 	// widths 
-	static float layerWid = rad * 0.75f / 7; // repeatable ring layers of the labyrinth, imagining it as an onion. 
-	// starting from the outside edge of entire labyrinth, each layer has these zones:
-	// 		(1) grass dotted with trees/bamboo
+	static float layerWid = rad * 0.75f / 7; // repeatable ring layers of the labyrinth, imagining it as an onion.....
+	// ....starting from the outside edge of entire labyrinth, each layer has these zones:
+	// 		(1) grassy strip dotted with trees/bamboo/plants/decorations  
 	//		(2) outer hedge
 	//		(3) path
 	//		(4) inner hedge
 	float hedgeWid = smallerFrac * layerWid / 2;
-	float pathWid = biggerFrac * layerWid / 2; // for now, the path & the tree/prop-dotted grass spaces between the concentric elbows, will share the same width 
+	float pathWid = biggerFrac * layerWid / 2; // for now, the path & the tree/prop-dotted grass strips between the concentric elbows, will share the same width 
 	List <LabyrinthQuadrant> pathQs = new List<LabyrinthQuadrant>() { // path quadrants (huge, concentric-elbows) 
 		new LabyrinthQuadrant(), 
 		new LabyrinthQuadrant(), 
@@ -116,15 +118,18 @@ public class ProcPath : MonoBehaviour {
 		cacheConcentricElbowVertsFor(Quadrant.NorthWest, new Vector3(-inset, 0, rad));
 		cacheConcentricElbowVertsFor(Quadrant.SouthWest, new Vector3(-rad, 0, -inset));
 
+        var currPos = new Vector3(-inset / 2, 0, -rad - pathWid);
+
         // make 1st 2 verts for the starting entrance archway of the labyrinth 
-        addVertAndUvToFinalList(new Vector3(-pathWid / 2, 0, -rad));
-        addVertAndUvToFinalList(new Vector3( pathWid / 2, 0, -rad));
+        currPos.x -= pathWid / 2;         addVertAndUvToFinalList(currPos);
+        currPos.x += pathWid; /**/        addVertAndUvToFinalList(currPos);
 
         // 1st small elbow 
-        var currPos = new Vector3(-inset/2, 0, -rad+layerWid*3);
-		var endDelta = new Vector3(-inset/2, 0, layerWid);
+        currPos.x -= pathWid / 2;
+        currPos.z = -rad + layerWid*3 + pathWid*1.4f;
+		var endDelta = new Vector3(-inset/2, 0, layerWid-pathWid*1.4f);
 		var pivotAnch = currPos + new Vector3(-layerWid, 0, 0);
-		makeArcedPathSection(5, pathWid, 0f, -90f,
+		makeArcedPathSection(numSmallElbowEdgeVerts, pathWid, 0f, -90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -135,7 +140,6 @@ public class ProcPath : MonoBehaviour {
 		var ri = 4; // ring id/index 
 		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 
-        // 2nd small elbow 
         makeNorthEdgeHairpinFromWestToEast(new Vector3(-rad+layerWid*ri, 0, -inset));
 
         // 2nd BIG elbow 
@@ -143,7 +147,7 @@ public class ProcPath : MonoBehaviour {
 		addSection(pq.Lefts[ri], pq.Rights[ri]);
 
 		// 3rd small elbow 
-		//makeEastEdgeHairpinFromSouthToNorth(new Vector3(-inset, 0, -rad+layerWid*ri));
+		makeEastEdgeHairpinFromSouthToNorth(new Vector3(-inset, 0, -rad+layerWid*ri));
 
 		// 3rd BIG elbow 
 		ri = 6;
@@ -152,7 +156,7 @@ public class ProcPath : MonoBehaviour {
 		addSection(pq.Rights[ri], pq.Lefts[ri]);
 
 		// 1st quadrant bridge 
-		//makeBridgeSectionBetweenQuadrants(0f, new Vector3(-rad+layerWid*ri, 0, -inset), new Vector3(0, 0, inset*2));
+		makeBridgeSectionBetweenQuadrants(0f, new Vector3(-rad+layerWid*ri, 0, -inset), new Vector3(0, 0, inset*2));
 
 		// 4th BIG elbow 
 		pq = pathQs[(int)Quadrant.NorthWest];
@@ -162,7 +166,7 @@ public class ProcPath : MonoBehaviour {
 		addSection(pq.Rights[ri], pq.Lefts[ri]);
 
 		// 2nd quadrant bridge 
-		//makeBridgeSectionBetweenQuadrants(90f, new Vector3(-inset, 0, rad-layerWid*ri), new Vector3(inset*2, 0, 0));
+		makeBridgeSectionBetweenQuadrants(90f, new Vector3(-inset, 0, rad-layerWid*ri), new Vector3(inset*2, 0, 0));
 
 		// 5th BIG elbow 
 		pq = pathQs[(int)Quadrant.NorthEast];
@@ -178,7 +182,7 @@ public class ProcPath : MonoBehaviour {
 		pivotAnch = currPos;
 		pivotAnch.x += layerWid/2;
 
-		makeArcedPathSection(5, pathWid, 180f, 90f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, 180f, 90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -187,7 +191,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(layerWid/2, 0, layerWid/2);
 
-		makeArcedPathSection(5, pathWid, 90f, 0f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, 90f, 0f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -242,11 +246,12 @@ public class ProcPath : MonoBehaviour {
 		makeBridgeSectionBetweenQuadrants(0f, new Vector3(-rad+layerWid*ri, 0, -inset), new Vector3(0, 0, inset*2));
 
 		pq = pathQs[(int)Quadrant.NorthWest];
+
 		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 		makeEastEdgeHairpinFromNorthToSouth(new Vector3(-inset, 0, rad));
 
 		ri = 1;
-		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
+        addSection(pq.Lefts[ri], pq.Rights[ri]);
 		makeSouthEdgeHairpinFromWestToEast(new Vector3(-rad+layerWid*ri, 0, inset));
 
 		ri = 2;
@@ -292,21 +297,21 @@ public class ProcPath : MonoBehaviour {
 		pq = pathQs[(int)Quadrant.SouthEast];
 		makeBigElbowWithEdgesSwappedAndBackwards(pq, ri);
 
-		// simple elbow (single 90'ish degree arc, forming quarter of a torus), which precedes the 2nd of 3 straight sections 
+		// small elbow (single 90'ish degree arc), which precedes the 2nd of 3 straight sections 
 		currPos = new Vector3(inset, 0, -rad);
 		var endD = new Vector3(-inset, 0, 7f); // delta from start to end point 
-		makeArcedPathSection(7, pathWid, -90f, 0f, 
+		makeArcedPathSection(/*7*/ numEdgeVertsInHalfOfHairpin, pathWid, -90f, 0f, 
 			currPos, 
 			endD, 
 			currPos + new Vector3(0, 0, 6),
 			lefts, rights);
 
-		// next to last simple elbow 
+		// next to last small elbow 
 		ri = 5;
 		var z = -rad+layerWid*ri;
-		currPos = new Vector3(0, 0, z-7f);
-		endD = new Vector3(inset, 0, 7f);
-		makeArcedPathSection(7, pathWid, 0f, 90f, 
+		currPos = new Vector3(0, 0, z-9f);
+		endD = new Vector3(inset, 0, 9f);
+		makeArcedPathSection(/*7*/ numEdgeVertsInHalfOfHairpin, pathWid, 0f, 90f, 
 			currPos, 
 			endD, 
 			currPos + new Vector3(inset, 0, 0),
@@ -321,7 +326,7 @@ public class ProcPath : MonoBehaviour {
 
 		// last simple elbow going into center of labyrinth 
 		currPos = new Vector3(inset, 0, -rad+6*layerWid);
-		makeArcedPathSection(7, pathWid, -90f, 0f, 
+		makeArcedPathSection(/*7*/ numEdgeVertsInHalfOfHairpin, pathWid, -90f, 0f, 
 			currPos, 
 			new Vector3(-inset, 0, 7f), 
 			currPos + new Vector3(0, 0, 6),
@@ -350,7 +355,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.z += layerWid/2;
 
-		makeArcedPathSection(numEdgeVerts, pathWid, -90f, 0f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, -90f, 0f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -359,7 +364,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(layerWid/2, 0, layerWid/2);
 
-		makeArcedPathSection(numEdgeVerts, pathWid, 0f, 90f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, 0f, 90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -372,7 +377,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.z -= layerWid/2;
 
-		makeArcedPathSection(numEdgeVerts, pathWid, -90f, 180f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, -90f, 180f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -381,7 +386,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(layerWid/2, 0, -layerWid/2);
 
-		makeArcedPathSection(numEdgeVerts, pathWid, 180f, 90f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, 180f, 90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -394,7 +399,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.z -= layerWid/2;
 
-		makeArcedPathSection(numEdgeVerts, pathWid, 90f, 180f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, 90f, 180f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -403,7 +408,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(-layerWid/2, 0, -layerWid/2);
 
-		makeArcedPathSection(numEdgeVerts, pathWid, 180f, -90f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, 180f, -90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -416,7 +421,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.z += layerWid/2;
 
-		makeArcedPathSection(numEdgeVerts, pathWid, 90f, 0f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, 90f, 0f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -425,7 +430,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(-layerWid/2, 0, layerWid/2);
 
-		makeArcedPathSection(numEdgeVerts, pathWid, 0f, -90f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, 0f, -90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -438,7 +443,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.x += layerWid/2;
 
-		makeArcedPathSection(numEdgeVerts, pathWid, 180f, 90f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, 180f, 90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -447,7 +452,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(layerWid/2, 0, layerWid/2);
 
-		makeArcedPathSection(numEdgeVerts, pathWid, 90f, 0f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, 90f, 0f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -460,7 +465,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.x -= layerWid/2;
 
-		makeArcedPathSection(numEdgeVerts, pathWid, -180f, -90f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, -180f, -90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -469,7 +474,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(-layerWid/2, 0, layerWid/2);
 
-		makeArcedPathSection(numEdgeVerts, pathWid, -90f, 0f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, -90f, 0f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -482,7 +487,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.x -= layerWid/2;
 
-		makeArcedPathSection(numEdgeVerts, pathWid, 0f, -90f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, 0f, -90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -491,7 +496,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(-layerWid/2, 0, -layerWid/2);
 
-		makeArcedPathSection(numEdgeVerts, pathWid, -90f, 180f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, -90f, 180f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -504,7 +509,7 @@ public class ProcPath : MonoBehaviour {
 		var pivotAnch = currPos;
 		pivotAnch.x += layerWid/2;
 
-		makeArcedPathSection(numEdgeVerts, pathWid, 0f, 90f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, 0f, 90f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -513,7 +518,7 @@ public class ProcPath : MonoBehaviour {
 		currPos += endDelta;
 		endDelta = new Vector3(layerWid/2, 0, -layerWid/2);
 
-		makeArcedPathSection(numEdgeVerts, pathWid, 90f, 180f,
+		makeArcedPathSection(numEdgeVertsInHalfOfHairpin, pathWid, 90f, 180f,
 			currPos, 
 			endDelta, 
 			pivotAnch,
@@ -523,7 +528,7 @@ public class ProcPath : MonoBehaviour {
 
 	Vector3 latestDelta;
 	void cacheConcentricElbowVertsFor(Quadrant q, Vector3 pathStart) {
-		int num = 8; // number of vertices per edge 
+        int num = numBigElbowEdgeVerts;
 		var currRadDist = rad; // current radial distance (from center of labyrinth) 
 		var pq = pathQs[(int)q]; // path quadrant 
 
