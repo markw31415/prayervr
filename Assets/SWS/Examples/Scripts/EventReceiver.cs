@@ -47,7 +47,7 @@ public class EventReceiver : MonoBehaviour
     private IEnumerator SetDestinationRoutine(Object target)
     {
         //get references
-        NavMeshAgent agent = GetComponent<NavMeshAgent>();
+        UnityEngine.AI.NavMeshAgent agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
         navMove myMove = GetComponent<navMove>();
         GameObject tar = (GameObject)target as GameObject;
 
@@ -62,7 +62,7 @@ public class EventReceiver : MonoBehaviour
         //wait until agent reached its destination
         float remain = agent.remainingDistance;
         while (remain == Mathf.Infinity || remain - agent.stoppingDistance > float.Epsilon
-        || agent.pathStatus != NavMeshPathStatus.PathComplete)
+        || agent.pathStatus != UnityEngine.AI.NavMeshPathStatus.PathComplete)
         {
             remain = agent.remainingDistance;
             yield return null;

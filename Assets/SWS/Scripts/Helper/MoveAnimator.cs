@@ -16,7 +16,7 @@ namespace SWS
     {
         //movement script references
         private splineMove sMove;
-        private NavMeshAgent nAgent;
+        private UnityEngine.AI.NavMeshAgent nAgent;
         //Mecanim animator reference
         private Animator animator;
         //cached y-rotation on tweens
@@ -30,7 +30,7 @@ namespace SWS
 
             sMove = GetComponent<splineMove>();
             if (!sMove)
-                nAgent = GetComponent<NavMeshAgent>();
+                nAgent = GetComponent<UnityEngine.AI.NavMeshAgent>();
 
         }
 

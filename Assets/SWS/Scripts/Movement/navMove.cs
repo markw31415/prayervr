@@ -14,7 +14,7 @@ namespace SWS
     /// <summary>
     /// Movement script: pathfinding using Unity NavMesh agents.
     /// <summary>
-    [RequireComponent(typeof(NavMeshAgent))]
+    [RequireComponent(typeof(UnityEngine.AI.NavMeshAgent))]
     [AddComponentMenu("Simple Waypoint System/navMove")]
     public class navMove : MonoBehaviour
     {
@@ -87,7 +87,7 @@ namespace SWS
         private bool repeat = false;
 
         //reference to the agent component
-        private NavMeshAgent agent;
+        private UnityEngine.AI.NavMeshAgent agent;
         //looptype random generator
         private System.Random rand = new System.Random();
         //looptype random current waypoint index
@@ -99,7 +99,7 @@ namespace SWS
         //check for automatic initialization
         void Start()
         {
-            agent = GetComponent<NavMeshAgent>();
+            agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
 
             if (onStart)
                 StartMove();
@@ -228,7 +228,7 @@ namespace SWS
 
             float remain = agent.remainingDistance;
             while (remain == Mathf.Infinity || remain - agent.stoppingDistance > float.Epsilon
-            || agent.pathStatus != NavMeshPathStatus.PathComplete)
+            || agent.pathStatus != UnityEngine.AI.NavMeshPathStatus.PathComplete)
             {
                 remain = agent.remainingDistance;
                 yield return null;

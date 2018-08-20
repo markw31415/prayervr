@@ -66,7 +66,7 @@ namespace SWS
                 if (move != null)
                 {
                     move.Stop();
-                    hit.GetComponent<NavMeshAgent>().enabled = false;
+                    hit.GetComponent<UnityEngine.AI.NavMeshAgent>().enabled = false;
                     hit.isTrigger = false;
                 }
                     
